@@ -52,31 +52,45 @@ export default function SuperManLayout() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} theme="dark">
+      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} theme="dark" width={228}>
         <div
           style={{
-            height: 48,
-            margin: 12,
+            height: 56,
+            margin: "16px 12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: collapsed ? "center" : "flex-start",
+            gap: 10,
             color: "#fff",
-            fontWeight: 600,
-            fontSize: collapsed ? 16 : 20,
-            textAlign: "center",
+            fontWeight: 700,
+            fontSize: collapsed ? 18 : 18,
+            letterSpacing: 0.3,
           }}
         >
-          {collapsed ? <CrownOutlined /> : "Landcore Platform"}
+          <CrownOutlined style={{ color: "#14B8A6" }} />
+          {collapsed ? null : "Landcore Platform"}
         </div>
         <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={NAV_ITEMS} />
       </Sider>
       <Layout>
-        <Header style={{ background: "#fff", padding: "0 16px", display: "flex", justifyContent: "flex-end" }}>
+        <Header
+          style={{
+            background: "#fff",
+            padding: "0 20px",
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            boxShadow: "0 1px 2px rgba(11, 31, 58, 0.06)",
+          }}
+        >
           <Dropdown menu={{ items: userMenu, onClick: onUserMenuClick }} placement="bottomRight">
             <Space style={{ cursor: "pointer" }}>
-              <Avatar icon={<UserOutlined />} />
+              <Avatar icon={<UserOutlined />} style={{ background: "#14B8A6" }} />
               <Typography.Text>{claims?.email ?? "SuperMan"}</Typography.Text>
             </Space>
           </Dropdown>
         </Header>
-        <Content style={{ margin: 16 }}>
+        <Content style={{ margin: 20 }}>
           <Outlet />
         </Content>
       </Layout>

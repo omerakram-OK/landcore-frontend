@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
   Drawer,
@@ -205,7 +206,7 @@ export default function LeadsListPage() {
       key: "actions",
       render: (_, record) => (
         <Space wrap>
-          <Button size="small" onClick={() => openEdit(record)}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             Edit
           </Button>
           <Button size="small" onClick={() => setNotesLead(record)}>
@@ -225,7 +226,7 @@ export default function LeadsListPage() {
             <Tag color={statusColor(record.status)}>Converted</Tag>
           )}
           <Popconfirm title="Delete this lead?" onConfirm={() => deleteMutation.mutate(record.id)}>
-            <Button size="small" danger loading={deleteMutation.isPending}>
+            <Button size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
               Delete
             </Button>
           </Popconfirm>
@@ -290,7 +291,7 @@ export default function LeadsListPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           Leads
         </Typography.Title>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           Create Lead
         </Button>
       </div>

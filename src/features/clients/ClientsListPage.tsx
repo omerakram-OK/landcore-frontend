@@ -12,7 +12,7 @@ import {
   message,
 } from "antd";
 import type { TableColumnsType } from "antd";
-import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient, deleteClient, listClients, updateClient } from "../../api/clients";
 import { listAgents } from "../../api/agents";
@@ -130,11 +130,11 @@ export default function ClientsListPage() {
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button size="small" onClick={() => openEdit(record)}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             Edit
           </Button>
           <Popconfirm title="Delete this client?" onConfirm={() => deleteMutation.mutate(record.id)}>
-            <Button size="small" danger loading={deleteMutation.isPending}>
+            <Button size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
               Delete
             </Button>
           </Popconfirm>
@@ -235,7 +235,7 @@ export default function ClientsListPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           Clients
         </Typography.Title>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           Create Client
         </Button>
       </div>

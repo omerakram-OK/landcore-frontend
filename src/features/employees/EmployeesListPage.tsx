@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { Button, Drawer, Form, Input, Popconfirm, Select, Space, Table, Tag, Typography, message } from "antd";
 import type { TableColumnsType } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -103,7 +104,7 @@ export default function EmployeesListPage() {
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button size="small" onClick={() => openEdit(record)}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             Edit
           </Button>
           {record.isActive ? (
@@ -135,7 +136,7 @@ export default function EmployeesListPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           Employees
         </Typography.Title>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           Create Employee
         </Button>
       </div>

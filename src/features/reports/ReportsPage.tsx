@@ -4,6 +4,19 @@ import type { TableColumnsType } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { getAgingReport, getDailyCollectionReport, getMonthlyProfitReport } from "../../api/reports";
 import type { AgingBucket, MonthlyProfitReport } from "../../types/report";
 import type { PaymentModeBreakdown } from "../../types/bankAccount";
@@ -12,6 +25,14 @@ const numberFormatter = new Intl.NumberFormat("en-US");
 
 function formatCurrency(amount: number): string {
   return `PKR ${numberFormatter.format(amount)}`;
+}
+
+const CHART_COLORS = ["#14B8A6", "#3B82F6", "#0B1F3A", "#F59E0B", "#EF4444", "#8B5CF6"];
+
+function agingBucketColor(bucket: string): string {
+  if (bucket === "Current") return "green";
+  if (bucket === "90+") return "red";
+  return "orange";
 }
 
 const modeColumns: TableColumnsType<PaymentModeBreakdown> = [
@@ -25,7 +46,7 @@ const agingColumns: TableColumnsType<AgingBucket> = [
     title: "Age Bucket",
     dataIndex: "bucket",
     key: "bucket",
-    render: (bucket: string) => <Tag color={bucket === "Current" ? "green" : bucket === "90+" ? "red" : "orange"}>{bucket}</Tag>,
+    render: (bucket: string) => <Tag color={agingBucketColor(bucket)}>{bucket}</Tag>,
   },
   { title: "Installments", dataIndex: "count", key: "count" },
   {
@@ -69,12 +90,12 @@ function DailyCollectionTab() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12}>
-          <Card>
+          <Card style={{ borderRadius: 12 }}>
             <Statistic title="Total Payments" value={data?.totalCount} loading={isLoading} />
           </Card>
         </Col>
         <Col xs={24} sm={12}>
-          <Card>
+          <Card style={{ borderRadius: 12 }}>
             <Statistic
               title="Total Amount"
               value={data ? formatCurrency(data.totalAmount) : undefined}
@@ -84,15 +105,36 @@ function DailyCollectionTab() {
         </Col>
       </Row>
 
-      <Table<PaymentModeBreakdown>
-        size="small"
-        rowKey="mode"
-        loading={isLoading}
-        pagination={false}
-        dataSource={data?.byMode}
-        columns={modeColumns}
-        locale={{ emptyText: <Empty description="No payments recorded on this date" /> }}
-      />
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={10}>
+          {data && data.byMode.length > 0 ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie data={data.byMode} dataKey="amount" nameKey="mode" innerRadius={55} outerRadius={90} paddingAngle={2}>
+                  {data.byMode.map((entry, index) => (
+                    <Cell key={entry.mode} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <Empty description="No payments recorded on this date" style={{ marginTop: 40 }} />
+          )}
+        </Col>
+        <Col xs={24} lg={14}>
+          <Table<PaymentModeBreakdown>
+            size="small"
+            rowKey="mode"
+            loading={isLoading}
+            pagination={false}
+            dataSource={data?.byMode}
+            columns={modeColumns}
+            locale={{ emptyText: <Empty description="No payments recorded on this date" /> }}
+          />
+        </Col>
+      </Row>
     </div>
   );
 }
@@ -107,6 +149,14 @@ function MonthlyProfitTab() {
 
   const netProfitColor = (report: MonthlyProfitReport | undefined) =>
     report && report.netProfit < 0 ? "#cf1322" : undefined;
+
+  const chartData = data
+    ? [
+        { label: "Collected", amount: data.totalCollected },
+        { label: "Refund Share", amount: data.totalCompanyProfitShareFromRefunds },
+        { label: "Net Profit", amount: data.netProfit },
+      ]
+    : [];
 
   return (
     <div>
@@ -133,14 +183,14 @@ function MonthlyProfitTab() {
         />
       ) : null}
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} lg={8}>
-          <Card>
+          <Card style={{ borderRadius: 12 }}>
             <Statistic title="Payment Count" value={data?.paymentCount} loading={isLoading} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <Card>
+          <Card style={{ borderRadius: 12 }}>
             <Statistic
               title="Total Collected"
               value={data ? formatCurrency(data.totalCollected) : undefined}
@@ -149,12 +199,12 @@ function MonthlyProfitTab() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <Card>
+          <Card style={{ borderRadius: 12 }}>
             <Statistic title="Refund Count" value={data?.refundCount} loading={isLoading} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={12}>
-          <Card>
+          <Card style={{ borderRadius: 12 }}>
             <Statistic
               title="Company Profit Share From Refunds"
               value={data ? formatCurrency(data.totalCompanyProfitShareFromRefunds) : undefined}
@@ -163,7 +213,7 @@ function MonthlyProfitTab() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={12}>
-          <Card>
+          <Card style={{ borderRadius: 12 }}>
             <Statistic
               title="Net Profit"
               value={data ? formatCurrency(data.netProfit) : undefined}
@@ -173,6 +223,20 @@ function MonthlyProfitTab() {
           </Card>
         </Col>
       </Row>
+
+      {data ? (
+        <Card style={{ borderRadius: 12 }}>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} tickFormatter={(value: number) => numberFormatter.format(value)} />
+              <Tooltip formatter={(value: number) => formatCurrency(value)} />
+              <Bar dataKey="amount" name="Amount" fill="#14B8A6" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      ) : null}
     </div>
   );
 }
@@ -202,12 +266,12 @@ function AgingReportTab() {
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12}>
-          <Card>
+          <Card style={{ borderRadius: 12 }}>
             <Statistic title="Total Outstanding Installments" value={data?.totalOutstandingCount} loading={isLoading} />
           </Card>
         </Col>
         <Col xs={24} sm={12}>
-          <Card>
+          <Card style={{ borderRadius: 12 }}>
             <Statistic
               title="Total Outstanding Amount"
               value={data ? formatCurrency(data.totalOutstandingAmount) : undefined}
@@ -218,14 +282,33 @@ function AgingReportTab() {
         </Col>
       </Row>
 
-      <Table<AgingBucket>
-        size="small"
-        rowKey="bucket"
-        loading={isLoading}
-        pagination={false}
-        dataSource={data?.buckets}
-        columns={agingColumns}
-      />
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={10}>
+          {data && data.buckets.some((bucket) => bucket.outstandingAmount > 0) ? (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={data.buckets}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={(value: number) => numberFormatter.format(value)} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Bar dataKey="outstandingAmount" name="Outstanding" fill="#F59E0B" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <Empty description="Nothing outstanding" style={{ marginTop: 40 }} />
+          )}
+        </Col>
+        <Col xs={24} lg={14}>
+          <Table<AgingBucket>
+            size="small"
+            rowKey="bucket"
+            loading={isLoading}
+            pagination={false}
+            dataSource={data?.buckets}
+            columns={agingColumns}
+          />
+        </Col>
+      </Row>
     </div>
   );
 }

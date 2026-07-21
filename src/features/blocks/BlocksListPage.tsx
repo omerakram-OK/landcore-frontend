@@ -17,7 +17,7 @@ import {
   message,
 } from "antd";
 import type { TableColumnsType, UploadFile } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   bulkImportBlocks,
@@ -155,11 +155,11 @@ export default function BlocksListPage() {
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button size="small" onClick={() => openEdit(record)}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             Edit
           </Button>
           <Popconfirm title="Delete this block?" onConfirm={() => deleteMutation.mutate(record.id)}>
-            <Button size="small" danger loading={deleteMutation.isPending}>
+            <Button size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
               Delete
             </Button>
           </Popconfirm>
@@ -185,7 +185,7 @@ export default function BlocksListPage() {
           <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
             Import Blocks
           </Button>
-          <Button type="primary" onClick={() => setCreateOpen(true)}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
             Create Block
           </Button>
         </Space>

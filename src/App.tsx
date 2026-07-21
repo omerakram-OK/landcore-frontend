@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfigProvider } from "antd";
+import { THEME_CONFIG } from "./theme";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout";
 import SuperManLayout from "./layouts/SuperManLayout";
@@ -23,6 +24,7 @@ import BankAccountsListPage from "./features/bankAccounts/BankAccountsListPage";
 import ApprovalsListPage from "./features/approvals/ApprovalsListPage";
 import DocumentsListPage from "./features/documents/DocumentsListPage";
 import ReportsPage from "./features/reports/ReportsPage";
+import SettingsPage from "./features/settings/SettingsPage";
 import PlatformReportsPage from "./features/superman-reports/PlatformReportsPage";
 import DashboardPage from "./features/dashboard/DashboardPage";
 import { AuthProvider } from "./hooks/useAuth";
@@ -36,7 +38,7 @@ const SUPERMAN_MODULE_ROUTES: Array<{ path: string; title: string }> = [];
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ConfigProvider>
+      <ConfigProvider theme={THEME_CONFIG}>
         <BrowserRouter>
           <AuthProvider>
             <Routes>
@@ -82,6 +84,7 @@ function App() {
                 <Route path="approvals" element={<ApprovalsListPage />} />
                 <Route path="documents" element={<DocumentsListPage />} />
                 <Route path="reports" element={<ReportsPage />} />
+                <Route path="settings" element={<SettingsPage />} />
                 {ADMIN_MODULE_ROUTES.map(({ path, title }) => (
                   <Route key={path} path={path} element={<ComingSoonPage title={title} />} />
                 ))}

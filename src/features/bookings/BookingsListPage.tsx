@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PlusOutlined } from "@ant-design/icons";
 import {
   Button,
   DatePicker,
@@ -220,7 +221,7 @@ export default function BookingsListPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           Bookings
         </Typography.Title>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           Create Booking
         </Button>
       </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
   DatePicker,
@@ -145,14 +146,14 @@ export default function BankAccountsListPage() {
           <Button size="small" onClick={() => openReconciliation(record)}>
             Reconciliation
           </Button>
-          <Button size="small" onClick={() => openEdit(record)}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             Edit
           </Button>
           <Popconfirm
             title="Delete this bank account?"
             onConfirm={() => deleteMutation.mutate(record.id)}
           >
-            <Button size="small" danger loading={deleteMutation.isPending}>
+            <Button size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
               Delete
             </Button>
           </Popconfirm>
@@ -200,7 +201,7 @@ export default function BankAccountsListPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           Bank Accounts
         </Typography.Title>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           Create Bank Account
         </Button>
       </div>

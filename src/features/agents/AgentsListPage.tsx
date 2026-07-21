@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
   Drawer,
@@ -99,11 +100,11 @@ export default function AgentsListPage() {
       key: "actions",
       render: (_, record) => (
         <Space>
-          <Button size="small" onClick={() => openEdit(record)}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             Edit
           </Button>
           <Popconfirm title="Delete this agent?" onConfirm={() => deleteMutation.mutate(record.id)}>
-            <Button size="small" danger loading={deleteMutation.isPending}>
+            <Button size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
               Delete
             </Button>
           </Popconfirm>
@@ -144,7 +145,7 @@ export default function AgentsListPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           Agents
         </Typography.Title>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           Create Agent
         </Button>
       </div>

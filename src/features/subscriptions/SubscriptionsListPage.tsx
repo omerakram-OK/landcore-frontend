@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
   DatePicker,
@@ -177,7 +178,7 @@ export default function SubscriptionsListPage() {
       key: "actions",
       render: (_, record) => (
         <Space wrap>
-          <Button size="small" onClick={() => openEdit(record)}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             Edit
           </Button>
           {record.status !== "Active" ? (
@@ -222,7 +223,7 @@ export default function SubscriptionsListPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           Subscriptions
         </Typography.Title>
-        <Button type="primary" onClick={() => setCreateOpen(true)}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           Create Subscription
         </Button>
       </div>
