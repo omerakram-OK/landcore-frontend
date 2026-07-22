@@ -5,6 +5,7 @@ import type {
   ApplyDiscountRequest,
   CreateInstallmentPlanRequest,
   InstallmentPlanResponse,
+  UpdateInstallmentPlanRequest,
 } from "../types/installment";
 
 export async function listInstallmentPlans(): Promise<InstallmentPlanResponse[]> {
@@ -42,6 +43,17 @@ export async function applyInstallmentDiscount(
 ): Promise<InstallmentPlanResponse | ApprovalRequestResponse> {
   const response = await axiosClient.put<ApiResponse<InstallmentPlanResponse | ApprovalRequestResponse>>(
     `/installments/${id}/discount`,
+    dto,
+  );
+  return response.data.data;
+}
+
+export async function updateInstallmentSchedule(
+  id: string,
+  dto: UpdateInstallmentPlanRequest,
+): Promise<InstallmentPlanResponse> {
+  const response = await axiosClient.put<ApiResponse<InstallmentPlanResponse>>(
+    `/installments/${id}/schedule`,
     dto,
   );
   return response.data.data;

@@ -46,6 +46,7 @@ export default function BlocksListPage() {
   const [isImportOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<BulkImportBlocksResult | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<CreateBlockRequest>();
   const [editForm] = Form.useForm<UpdateBlockRequest>();
 
@@ -140,6 +141,17 @@ export default function BlocksListPage() {
     });
   };
 
+  const filteredBlocks = (data ?? []).filter((block) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    const societyName = societyNameById.get(block.societyId) ?? "";
+    return (
+      block.name.toLowerCase().includes(term) ||
+      block.description.toLowerCase().includes(term) ||
+      societyName.toLowerCase().includes(term)
+    );
+  });
+
   const columns: TableColumnsType<BlockResponse> = [
     {
       title: "Society",
@@ -191,7 +203,14 @@ export default function BlocksListPage() {
         </Space>
       </div>
 
-      <Table<BlockResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by name, description, or society"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<BlockResponse> rowKey="id" loading={isLoading} dataSource={filteredBlocks} columns={columns} />
 
       <Modal
         title="Import Blocks from CSV/TXT"

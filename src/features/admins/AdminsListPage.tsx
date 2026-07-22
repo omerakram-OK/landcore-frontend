@@ -23,6 +23,7 @@ export default function AdminsListPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<CreateAdminRequest>();
   const [editForm] = Form.useForm<UpdateAdminRequest>();
 
@@ -79,6 +80,16 @@ export default function AdminsListPage() {
       contactEmail: record.contactEmail,
     });
   };
+
+  const filteredAdmins = (data ?? []).filter((admin) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      admin.societyName.toLowerCase().includes(term) ||
+      admin.contactEmail.toLowerCase().includes(term) ||
+      admin.status.toLowerCase().includes(term)
+    );
+  });
 
   const columns: TableColumnsType<AdminResponse> = [
     { title: "Society / Company", dataIndex: "societyName", key: "societyName" },
@@ -140,7 +151,14 @@ export default function AdminsListPage() {
         </Button>
       </div>
 
-      <Table<AdminResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by society, email, or status"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<AdminResponse> rowKey="id" loading={isLoading} dataSource={filteredAdmins} columns={columns} />
 
       <Drawer
         title="Create Admin"

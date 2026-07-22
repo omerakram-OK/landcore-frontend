@@ -37,3 +37,13 @@ export interface ApplyDiscountRequest {
   notes?: string | null;
   justification?: string | null;
 }
+
+export interface UpdateInstallmentItem {
+  seqNo?: number;
+  dueDate: string;
+  amount: number;
+}
+
+export interface UpdateInstallmentPlanRequest {
+  installments: UpdateInstallmentItem[];
+}

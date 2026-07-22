@@ -37,6 +37,7 @@ export default function ClientsListPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<ClientResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<ClientFormValues>();
   const [editForm] = Form.useForm<ClientFormValues>();
 
@@ -143,6 +144,17 @@ export default function ClientsListPage() {
     },
   ];
 
+  const filteredClients = (data ?? []).filter((client) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      client.fullName.toLowerCase().includes(term) ||
+      client.cnic.toLowerCase().includes(term) ||
+      client.phones.some((phone) => phone.toLowerCase().includes(term)) ||
+      client.email.toLowerCase().includes(term)
+    );
+  });
+
   const clientFormFields = (excludeId?: string) => (
     <>
       <Form.Item name="fullName" label="Full Name" rules={[{ required: true, message: "Full name is required" }]}>
@@ -240,7 +252,14 @@ export default function ClientsListPage() {
         </Button>
       </div>
 
-      <Table<ClientResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by name, CNIC, phone, or email"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<ClientResponse> rowKey="id" loading={isLoading} dataSource={filteredClients} columns={columns} />
 
       <Drawer
         title="Create Client"

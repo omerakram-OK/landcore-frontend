@@ -37,6 +37,7 @@ export default function SocietiesListPage() {
 
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingSociety, setEditingSociety] = useState<SocietyResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<CreateSocietyRequest>();
   const [editForm] = Form.useForm<UpdateSocietyRequest>();
 
@@ -87,6 +88,16 @@ export default function SocietiesListPage() {
     });
   };
 
+  const filteredSocieties = (data ?? []).filter((society) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      society.name.toLowerCase().includes(term) ||
+      society.address.toLowerCase().includes(term) ||
+      society.description.toLowerCase().includes(term)
+    );
+  });
+
   const columns: TableColumnsType<SocietyResponse> = [
     { title: "Name", dataIndex: "name", key: "name" },
     { title: "Address", dataIndex: "address", key: "address" },
@@ -130,7 +141,14 @@ export default function SocietiesListPage() {
         ) : null}
       </div>
 
-      <Table<SocietyResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by name, address, or description"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<SocietyResponse> rowKey="id" loading={isLoading} dataSource={filteredSocieties} columns={columns} />
 
       <Drawer
         title="Create Society"

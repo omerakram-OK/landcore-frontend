@@ -83,6 +83,7 @@ export default function DesignationsListPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingDesignation, setEditingDesignation] = useState<DesignationResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<{ name: string }>();
   const [editForm] = Form.useForm<{ name: string }>();
   const [createPermissions, setCreatePermissions] = useState<PermissionsState>({});
@@ -148,6 +149,12 @@ export default function DesignationsListPage() {
     }
   }, [editingDesignation, editForm]);
 
+  const filteredDesignations = (data ?? []).filter((designation) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return designation.name.toLowerCase().includes(term);
+  });
+
   const columns: TableColumnsType<DesignationResponse> = [
     { title: "Name", dataIndex: "name", key: "name" },
     {
@@ -199,7 +206,14 @@ export default function DesignationsListPage() {
         </Button>
       </div>
 
-      <Table<DesignationResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by name"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<DesignationResponse> rowKey="id" loading={isLoading} dataSource={filteredDesignations} columns={columns} />
 
       <Drawer
         title="Create Designation"

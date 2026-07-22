@@ -54,6 +54,7 @@ export default function BankAccountsListPage() {
     dayjs().subtract(90, "day").startOf("day"),
     dayjs().endOf("day"),
   ]);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<BankAccountFormValues>();
   const [editForm] = Form.useForm<BankAccountFormValues>();
 
@@ -134,6 +135,16 @@ export default function BankAccountsListPage() {
     setReconcilingAccount(record);
   };
 
+  const filteredAccounts = (data ?? []).filter((account) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      account.accountName.toLowerCase().includes(term) ||
+      account.accountNumber.toLowerCase().includes(term) ||
+      account.bankName.toLowerCase().includes(term)
+    );
+  });
+
   const columns: TableColumnsType<BankAccountResponse> = [
     { title: "Account Name", dataIndex: "accountName", key: "accountName" },
     { title: "Account Number", dataIndex: "accountNumber", key: "accountNumber" },
@@ -206,7 +217,14 @@ export default function BankAccountsListPage() {
         </Button>
       </div>
 
-      <Table<BankAccountResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by account name, account number, or bank"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<BankAccountResponse> rowKey="id" loading={isLoading} dataSource={filteredAccounts} columns={columns} />
 
       <Drawer
         title="Create Bank Account"

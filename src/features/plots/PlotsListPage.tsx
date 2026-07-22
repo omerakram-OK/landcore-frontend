@@ -184,6 +184,7 @@ export default function PlotsListPage() {
   const [isImportOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<BulkImportPlotsResult | null>(null);
+  const [searchText, setSearchText] = useState("");
 
   const [createForm] = Form.useForm<PlotFormValues>();
   const [editForm] = Form.useForm<PlotFormValues>();
@@ -481,6 +482,30 @@ export default function PlotsListPage() {
     value: plot.id,
   }));
 
+  const confirmStatusChange = (record: PlotResponse, nextStatus: PlotStatus) => {
+    Modal.confirm({
+      title: "Change plot status?",
+      content: `Are you sure you want to change Plot ${record.plotNumber}'s status to "${nextStatus}"? This action may be irreversible.`,
+      okText: "Yes, change status",
+      cancelText: "Cancel",
+      onOk: () => statusMutation.mutate({ id: record.id, status: nextStatus }),
+    });
+  };
+
+  const filteredPlots = (data ?? []).filter((plot) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    const blockName = blockNameById.get(plot.blockId) ?? "";
+    const societyName = societyNameById.get(plot.societyId) ?? "";
+    return (
+      plot.plotNumber.toLowerCase().includes(term) ||
+      plot.category.toLowerCase().includes(term) ||
+      plot.status.toLowerCase().includes(term) ||
+      blockName.toLowerCase().includes(term) ||
+      societyName.toLowerCase().includes(term)
+    );
+  });
+
   const columns: TableColumnsType<PlotResponse> = [
     { title: "Plot #", dataIndex: "plotNumber", key: "plotNumber" },
     {
@@ -520,7 +545,7 @@ export default function PlotsListPage() {
                 style={{ width: 140 }}
                 value={undefined}
                 options={nextOptions}
-                onChange={(value) => statusMutation.mutate({ id: record.id, status: value })}
+                onChange={(value) => confirmStatusChange(record, value)}
               />
             ) : null}
           </Space>
@@ -799,7 +824,14 @@ export default function PlotsListPage() {
         </Space>
       </div>
 
-      <Table<PlotResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by plot number, category, status, block, or society"
+        style={{ width: 340, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<PlotResponse> rowKey="id" loading={isLoading} dataSource={filteredPlots} columns={columns} />
 
       <Drawer
         title="Create Plot"

@@ -7,6 +7,7 @@ import {
   Form,
   Input,
   List,
+  Modal,
   Popconfirm,
   Select,
   Space,
@@ -85,6 +86,7 @@ export default function LeadsListPage() {
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<LeadResponse | null>(null);
   const [notesLead, setNotesLead] = useState<LeadResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<LeadFormValues>();
   const [editForm] = Form.useForm<LeadFormValues>();
   const [noteForm] = Form.useForm<{ note: string }>();
@@ -180,6 +182,29 @@ export default function LeadsListPage() {
     });
   };
 
+  const confirmStatusChange = (record: LeadResponse, nextStatus: LeadStatus) => {
+    Modal.confirm({
+      title: "Change lead status?",
+      content: `Are you sure you want to change "${record.name}"'s status to "${nextStatus}"?`,
+      okText: "Yes, change status",
+      cancelText: "Cancel",
+      onOk: () => statusMutation.mutate({ id: record.id, status: nextStatus }),
+    });
+  };
+
+  const filteredLeads = (data ?? []).filter((lead) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      lead.name.toLowerCase().includes(term) ||
+      lead.phone.toLowerCase().includes(term) ||
+      lead.email.toLowerCase().includes(term) ||
+      lead.source.toLowerCase().includes(term) ||
+      lead.status.toLowerCase().includes(term) ||
+      lead.assignedEmployeeName.toLowerCase().includes(term)
+    );
+  });
+
   const columns: TableColumnsType<LeadResponse> = [
     { title: "Name", dataIndex: "name", key: "name" },
     { title: "Phone", dataIndex: "phone", key: "phone" },
@@ -196,7 +221,7 @@ export default function LeadsListPage() {
           value={status}
           options={STATUS_OPTIONS}
           style={{ width: 130 }}
-          onChange={(value) => statusMutation.mutate({ id: record.id, status: value })}
+          onChange={(value) => confirmStatusChange(record, value)}
           popupMatchSelectWidth={false}
         />
       ),
@@ -296,7 +321,14 @@ export default function LeadsListPage() {
         </Button>
       </div>
 
-      <Table<LeadResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by name, phone, email, source, or status"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<LeadResponse> rowKey="id" loading={isLoading} dataSource={filteredLeads} columns={columns} />
 
       <Drawer
         title="Create Lead"

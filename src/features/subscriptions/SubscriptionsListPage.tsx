@@ -5,6 +5,7 @@ import {
   DatePicker,
   Drawer,
   Form,
+  Input,
   InputNumber,
   Popconfirm,
   Select,
@@ -68,6 +69,7 @@ export default function SubscriptionsListPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<SubscriptionResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<CreateSubscriptionFormValues>();
   const [editForm] = Form.useForm<EditSubscriptionFormValues>();
 
@@ -144,6 +146,17 @@ export default function SubscriptionsListPage() {
       nextDueDate: dayjs(record.nextDueDate),
     });
   };
+
+  const filteredSubscriptions = (subscriptions ?? []).filter((subscription) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    const adminName = adminNameById.get(subscription.adminId) ?? "";
+    return (
+      adminName.toLowerCase().includes(term) ||
+      subscription.plan.toLowerCase().includes(term) ||
+      subscription.status.toLowerCase().includes(term)
+    );
+  });
 
   const columns: TableColumnsType<SubscriptionResponse> = [
     {
@@ -228,10 +241,17 @@ export default function SubscriptionsListPage() {
         </Button>
       </div>
 
+      <Input.Search
+        allowClear
+        placeholder="Search by admin, plan, or status"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
       <Table<SubscriptionResponse>
         rowKey="id"
         loading={isLoading}
-        dataSource={subscriptions}
+        dataSource={filteredSubscriptions}
         columns={columns}
       />
 

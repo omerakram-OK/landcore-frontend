@@ -36,6 +36,7 @@ export default function AgentsListPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<CreateAgentRequest>();
   const [editForm] = Form.useForm<UpdateAgentRequest>();
 
@@ -113,6 +114,17 @@ export default function AgentsListPage() {
     },
   ];
 
+  const filteredAgents = (data ?? []).filter((agent) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      agent.fullName.toLowerCase().includes(term) ||
+      agent.cnic.toLowerCase().includes(term) ||
+      agent.phone.toLowerCase().includes(term) ||
+      agent.email.toLowerCase().includes(term)
+    );
+  });
+
   const commissionFields = (
     <>
       <Form.Item
@@ -150,7 +162,14 @@ export default function AgentsListPage() {
         </Button>
       </div>
 
-      <Table<AgentResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by name, CNIC, phone, or email"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<AgentResponse> rowKey="id" loading={isLoading} dataSource={filteredAgents} columns={columns} />
 
       <Drawer
         title="Create Agent"

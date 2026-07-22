@@ -13,6 +13,7 @@ import {
   Select,
   Space,
   Table,
+  Tabs,
   Tag,
   Typography,
   message,
@@ -26,6 +27,7 @@ import {
   applyInstallmentDiscount,
   createInstallmentPlan,
   listInstallmentPlans,
+  updateInstallmentSchedule,
 } from "../../api/installments";
 import { listPayments, recordPayment } from "../../api/payments";
 import { bounceCheque, clearCheque, listCheques } from "../../api/cheques";
@@ -41,6 +43,7 @@ import type {
   InstallmentDto,
   InstallmentPlanResponse,
   InstallmentStatus,
+  UpdateInstallmentPlanRequest,
 } from "../../types/installment";
 import type { PaymentMode, PaymentResponse, RecordPaymentRequest } from "../../types/payment";
 import type { BounceChequeRequest, ChequeResponse, ChequeStatus } from "../../types/cheque";
@@ -88,6 +91,10 @@ interface DiscountFormValues {
   discountAmount: number;
   notes?: string;
   justification?: string;
+}
+
+interface EditScheduleFormValues {
+  installments: Array<{ seqNo?: number; dueDate: Dayjs; amount: number }>;
 }
 
 function installmentStatusColor(status: InstallmentStatus): string {
@@ -141,11 +148,18 @@ export default function PaymentsListPage() {
   const [viewingCheque, setViewingCheque] = useState<ChequeResponse | null>(null);
   const [bouncingCheque, setBouncingCheque] = useState<ChequeResponse | null>(null);
   const [discountingPlan, setDiscountingPlan] = useState<InstallmentPlanResponse | null>(null);
+  const [editingSchedulePlan, setEditingSchedulePlan] = useState<InstallmentPlanResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
 
   const [recordPaymentForm] = Form.useForm<RecordPaymentFormValues>();
   const [createPlanForm] = Form.useForm<CreatePlanFormValues>();
   const [bounceForm] = Form.useForm<BounceFormValues>();
   const [discountForm] = Form.useForm<DiscountFormValues>();
+  const [editScheduleForm] = Form.useForm<EditScheduleFormValues>();
+
+  const watchedScheduleInstallments = Form.useWatch("installments", editScheduleForm) as
+    | Array<{ seqNo?: number }>
+    | undefined;
 
   const selectedPlanId = Form.useWatch("installmentPlanId", recordPaymentForm);
   const selectedMode = Form.useWatch("mode", recordPaymentForm);
@@ -309,6 +323,42 @@ export default function PaymentsListPage() {
     onError: (error) => message.error(getApiErrorMessage(error, "Failed to apply discount.")),
   });
 
+  const updateScheduleMutation = useMutation({
+    mutationFn: ({ id, values }: { id: string; values: EditScheduleFormValues }) => {
+      const dto: UpdateInstallmentPlanRequest = {
+        installments: values.installments.map((item) => ({
+          seqNo: item.seqNo,
+          dueDate: item.dueDate.toISOString(),
+          amount: item.amount,
+        })),
+      };
+      return updateInstallmentSchedule(id, dto);
+    },
+    onSuccess: (result) => {
+      message.success("Installment schedule updated.");
+      setViewingInstallmentsPlan(result);
+      setEditingSchedulePlan(null);
+      editScheduleForm.resetFields();
+      void queryClient.invalidateQueries({ queryKey: INSTALLMENT_PLANS_QUERY_KEY });
+    },
+    onError: (error) => message.error(getApiErrorMessage(error, "Failed to update installment schedule.")),
+  });
+
+  const openEditSchedule = (plan: InstallmentPlanResponse) => {
+    editScheduleForm.setFieldsValue({
+      installments: plan.installments.map((installment) => ({
+        seqNo: installment.seqNo,
+        dueDate: dayjs(installment.dueDate),
+        amount: installment.amount,
+      })),
+    });
+    setEditingSchedulePlan(plan);
+  };
+
+  const originalInstallmentBySeqNo = new Map(
+    (editingSchedulePlan?.installments ?? []).map((installment) => [installment.seqNo, installment]),
+  );
+
   const selectedPlan = selectedPlanId ? planById.get(selectedPlanId) : undefined;
   const installmentOptions = (selectedPlan?.installments ?? [])
     .filter((installment) => installment.status !== "Paid")
@@ -334,6 +384,22 @@ export default function PaymentsListPage() {
       label: `${plotNumberById.get(booking.plotId) ?? booking.plotId} — Booking ${booking.id.slice(-6)}`,
       value: booking.id,
     }));
+
+  const filteredPayments = (payments ?? []).filter((payment) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      plotRefForPlan(payment.installmentPlanId).toLowerCase().includes(term) ||
+      payment.mode.toLowerCase().includes(term) ||
+      (payment.receiptNumber ?? "").toLowerCase().includes(term)
+    );
+  });
+
+  const filteredPlans = (plans ?? []).filter((plan) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return plotRefForPlan(plan.id).toLowerCase().includes(term);
+  });
 
   const columns: TableColumnsType<PaymentResponse> = [
     {
@@ -400,6 +466,38 @@ export default function PaymentsListPage() {
     },
   ];
 
+  const planColumns: TableColumnsType<InstallmentPlanResponse> = [
+    {
+      title: "Plot / Booking",
+      key: "plotRef",
+      render: (_, record) => plotRefForPlan(record.id),
+    },
+    { title: "Down Payment", dataIndex: "downPayment", key: "downPayment" },
+    {
+      title: "Installments Paid",
+      key: "installmentsPaid",
+      render: (_, record) => {
+        const paidCount = record.installments.filter((installment) => installment.status === "Paid").length;
+        return `${paidCount} / ${record.installments.length}`;
+      },
+    },
+    {
+      title: "Total Scheduled",
+      key: "totalScheduled",
+      render: (_, record) => record.installments.reduce((total, installment) => total + installment.amount, 0),
+    },
+    { title: "Credit Balance", dataIndex: "creditBalance", key: "creditBalance" },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Button size="small" onClick={() => setViewingInstallmentsPlan(record)}>
+          View Installments
+        </Button>
+      ),
+    },
+  ];
+
   const installmentColumns: TableColumnsType<InstallmentDto> = [
     { title: "Seq", dataIndex: "seqNo", key: "seqNo" },
     {
@@ -439,11 +537,41 @@ export default function PaymentsListPage() {
         </Space>
       </div>
 
-      <Table<PaymentResponse>
-        rowKey="id"
-        loading={isPaymentsLoading || isPlansLoading}
-        dataSource={payments}
-        columns={columns}
+      <Input.Search
+        allowClear
+        placeholder="Search by plot/booking, mode, or receipt number"
+        style={{ width: 340, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Tabs
+        defaultActiveKey="payments"
+        items={[
+          {
+            key: "payments",
+            label: "Payments",
+            children: (
+              <Table<PaymentResponse>
+                rowKey="id"
+                loading={isPaymentsLoading || isPlansLoading}
+                dataSource={filteredPayments}
+                columns={columns}
+              />
+            ),
+          },
+          {
+            key: "installment-plans",
+            label: "Installment Plans",
+            children: (
+              <Table<InstallmentPlanResponse>
+                rowKey="id"
+                loading={isPlansLoading}
+                dataSource={filteredPlans}
+                columns={planColumns}
+              />
+            ),
+          },
+        ]}
       />
 
       <Drawer
@@ -666,7 +794,10 @@ export default function PaymentsListPage() {
               columns={installmentColumns}
             />
 
-            <Button onClick={() => setDiscountingPlan(viewingInstallmentsPlan)}>Apply Discount</Button>
+            <Space>
+              <Button onClick={() => setDiscountingPlan(viewingInstallmentsPlan)}>Apply Discount</Button>
+              <Button onClick={() => openEditSchedule(viewingInstallmentsPlan)}>Edit Schedule</Button>
+            </Space>
           </Space>
         ) : null}
       </Drawer>
@@ -709,6 +840,86 @@ export default function PaymentsListPage() {
           >
             <Input.TextArea rows={2} />
           </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={
+          editingSchedulePlan
+            ? `Edit Installment Schedule — ${plotRefForPlan(editingSchedulePlan.id)}`
+            : "Edit Installment Schedule"
+        }
+        open={editingSchedulePlan !== null}
+        onCancel={() => {
+          setEditingSchedulePlan(null);
+          editScheduleForm.resetFields();
+        }}
+        onOk={() => editScheduleForm.submit()}
+        confirmLoading={updateScheduleMutation.isPending}
+        destroyOnHidden
+        width={640}
+      >
+        <Typography.Paragraph type="secondary">
+          Installments that are already fully paid cannot be changed or removed. Partially paid
+          installments cannot be reduced below the amount already paid.
+        </Typography.Paragraph>
+        <Form<EditScheduleFormValues>
+          form={editScheduleForm}
+          layout="vertical"
+          onFinish={(values) => {
+            if (editingSchedulePlan) {
+              updateScheduleMutation.mutate({ id: editingSchedulePlan.id, values });
+            }
+          }}
+        >
+          <Form.List name="installments">
+            {(fields, { add, remove }) => (
+              <Space direction="vertical" style={{ width: "100%" }}>
+                {fields.map((field) => {
+                  const seqNo = watchedScheduleInstallments?.[field.name]?.seqNo;
+                  const original = seqNo !== undefined ? originalInstallmentBySeqNo.get(seqNo) : undefined;
+                  const isFullyPaid = original?.status === "Paid";
+                  const minAmount = original?.paidAmount ?? 0;
+                  const canRemove = !original || original.paidAmount === 0;
+
+                  return (
+                    <Space key={field.key} align="baseline" style={{ width: "100%" }} wrap>
+                      <Form.Item {...field} name={[field.name, "seqNo"]} hidden>
+                        <InputNumber />
+                      </Form.Item>
+                      <Form.Item
+                        {...field}
+                        name={[field.name, "dueDate"]}
+                        rules={[{ required: true, message: "Due date is required" }]}
+                        style={{ marginBottom: 8 }}
+                      >
+                        <DatePicker placeholder="Due date" disabled={isFullyPaid} />
+                      </Form.Item>
+                      <Form.Item
+                        {...field}
+                        name={[field.name, "amount"]}
+                        rules={[{ required: true, message: "Amount is required" }]}
+                        style={{ marginBottom: 8 }}
+                      >
+                        <InputNumber placeholder="Amount" min={minAmount} disabled={isFullyPaid} />
+                      </Form.Item>
+                      {original ? (
+                        <Tag color={installmentStatusColor(original.status)}>{original.status}</Tag>
+                      ) : (
+                        <Tag>New</Tag>
+                      )}
+                      {fields.length > 1 && canRemove ? (
+                        <MinusCircleOutlined onClick={() => remove(field.name)} />
+                      ) : null}
+                    </Space>
+                  );
+                })}
+                <Button type="dashed" onClick={() => add({})} icon={<PlusOutlined />} block>
+                  Add Installment
+                </Button>
+              </Space>
+            )}
+          </Form.List>
         </Form>
       </Modal>
 

@@ -6,6 +6,7 @@ import {
   Descriptions,
   Drawer,
   Form,
+  Input,
   InputNumber,
   Popconfirm,
   Select,
@@ -66,6 +67,7 @@ export default function BookingsListPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [detailBooking, setDetailBooking] = useState<BookingResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<BookingFormValues>();
 
   const { data, isLoading } = useQuery({
@@ -155,6 +157,18 @@ export default function BookingsListPage() {
     onError: (error) => message.error(getApiErrorMessage(error, "Failed to expire booking.")),
   });
 
+  const filteredBookings = (data ?? []).filter((booking) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    const plotNumber = plotNumberById.get(booking.plotId) ?? "";
+    const clientName = clientNameById.get(booking.clientId) ?? "";
+    return (
+      plotNumber.toLowerCase().includes(term) ||
+      clientName.toLowerCase().includes(term) ||
+      booking.status.toLowerCase().includes(term)
+    );
+  });
+
   const columns: TableColumnsType<BookingResponse> = [
     {
       title: "Plot",
@@ -226,7 +240,14 @@ export default function BookingsListPage() {
         </Button>
       </div>
 
-      <Table<BookingResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by plot number, client, or status"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<BookingResponse> rowKey="id" loading={isLoading} dataSource={filteredBookings} columns={columns} />
 
       <Drawer
         title="Create Booking"

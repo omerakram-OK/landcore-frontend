@@ -24,6 +24,7 @@ export default function EmployeesListPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeResponse | null>(null);
+  const [searchText, setSearchText] = useState("");
   const [createForm] = Form.useForm<CreateEmployeeRequest>();
   const [editForm] = Form.useForm<UpdateEmployeeRequest>();
 
@@ -86,6 +87,17 @@ export default function EmployeesListPage() {
     });
   };
 
+  const filteredEmployees = (data ?? []).filter((employee) => {
+    const term = searchText.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      employee.fullName.toLowerCase().includes(term) ||
+      employee.email.toLowerCase().includes(term) ||
+      employee.phone.toLowerCase().includes(term) ||
+      employee.designationName.toLowerCase().includes(term)
+    );
+  });
+
   const columns: TableColumnsType<EmployeeResponse> = [
     { title: "Full Name", dataIndex: "fullName", key: "fullName" },
     { title: "Email", dataIndex: "email", key: "email" },
@@ -141,7 +153,14 @@ export default function EmployeesListPage() {
         </Button>
       </div>
 
-      <Table<EmployeeResponse> rowKey="id" loading={isLoading} dataSource={data} columns={columns} />
+      <Input.Search
+        allowClear
+        placeholder="Search by name, email, phone, or designation"
+        style={{ width: 320, marginBottom: 16 }}
+        onChange={(e) => setSearchText(e.target.value)}
+      />
+
+      <Table<EmployeeResponse> rowKey="id" loading={isLoading} dataSource={filteredEmployees} columns={columns} />
 
       <Drawer
         title="Create Employee"
