@@ -21,7 +21,14 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const claims = await login(values.email, values.password);
-      const fallback = claims.role === "SuperMan" ? "/superman" : "/";
+      const fallback =
+        claims.role === "SuperMan"
+          ? "/superman"
+          : claims.role === "Client"
+            ? "/client-portal"
+            : claims.role === "Agent"
+              ? "/agent-portal"
+              : "/";
       navigate(from?.pathname ?? fallback, { replace: true });
     } catch {
       message.error("Invalid email or password.");

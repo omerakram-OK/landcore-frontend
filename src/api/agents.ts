@@ -1,6 +1,11 @@
 import { axiosClient } from "./axiosClient";
 import type { ApiResponse } from "../types/api";
-import type { AgentResponse, CreateAgentRequest, UpdateAgentRequest } from "../types/agent";
+import type {
+  AgentCommissionRecordResponse,
+  AgentResponse,
+  CreateAgentRequest,
+  UpdateAgentRequest,
+} from "../types/agent";
 
 export async function listAgents(): Promise<AgentResponse[]> {
   const response = await axiosClient.get<ApiResponse<AgentResponse[]>>("/agents");
@@ -24,4 +29,9 @@ export async function updateAgent(id: string, dto: UpdateAgentRequest): Promise<
 
 export async function deleteAgent(id: string): Promise<void> {
   await axiosClient.delete<ApiResponse<{ deleted: boolean }>>(`/agents/${id}`);
+}
+
+export async function getAgentCommissionHistory(id: string): Promise<AgentCommissionRecordResponse[]> {
+  const response = await axiosClient.get<ApiResponse<AgentCommissionRecordResponse[]>>(`/agents/${id}/commissions`);
+  return response.data.data;
 }

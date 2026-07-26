@@ -3,7 +3,7 @@ export interface LoginRequest {
   password: string;
 }
 
-export type UserRole = "SuperMan" | "Admin" | "Employee";
+export type UserRole = "SuperMan" | "Admin" | "Employee" | "Client" | "Agent";
 
 export interface LoginResponseData {
   token: string;
@@ -30,6 +30,8 @@ export const CLAIM_TYPES = {
   nameIdentifier: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
   role: "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
   adminId: "adminId",
+  clientId: "clientId",
+  agentId: "agentId",
   permission: "permission",
   email: "email",
   name: "name",
@@ -40,6 +42,8 @@ export interface DecodedToken {
   [CLAIM_TYPES.nameIdentifier]?: string;
   [CLAIM_TYPES.role]: UserRole;
   adminId?: string;
+  clientId?: string;
+  agentId?: string;
   email?: string;
   name?: string;
   permission?: string | string[];
@@ -55,6 +59,8 @@ export interface AuthClaims {
   userId: string;
   role: UserRole;
   adminId: string | null;
+  clientId: string | null;
+  agentId: string | null;
   permissions: string[];
   email: string | null;
   name: string | null;

@@ -40,6 +40,8 @@ function toClaims(decoded: DecodedToken): AuthClaims {
     userId: decoded.sub,
     role: decoded[CLAIM_TYPES.role],
     adminId: decoded.adminId ?? null,
+    clientId: decoded.clientId ?? null,
+    agentId: decoded.agentId ?? null,
     permissions,
     email: decoded.email ?? null,
     name: decoded.name ?? null,

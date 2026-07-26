@@ -1,22 +1,32 @@
 import { useState } from "react";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, DollarOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
   Drawer,
+  Empty,
   Form,
   Input,
   InputNumber,
   Popconfirm,
   Select,
   Space,
+  Switch,
   Table,
+  Tag,
   Typography,
   message,
 } from "antd";
 import type { TableColumnsType } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createAgent, deleteAgent, listAgents, updateAgent } from "../../api/agents";
-import type { AgentResponse, CommissionType, CreateAgentRequest, UpdateAgentRequest } from "../../types/agent";
+import dayjs from "dayjs";
+import { createAgent, deleteAgent, getAgentCommissionHistory, listAgents, updateAgent } from "../../api/agents";
+import type {
+  AgentCommissionRecordResponse,
+  AgentResponse,
+  CommissionType,
+  CreateAgentRequest,
+  UpdateAgentRequest,
+} from "../../types/agent";
 import { getApiErrorMessage } from "../../utils/errors";
 
 const AGENTS_QUERY_KEY = ["agents"] as const;
@@ -32,23 +42,60 @@ function commissionValueLabel(agent: AgentResponse): string {
     : `PKR ${agent.commissionValue.toLocaleString()}`;
 }
 
+function commissionRecordAmountLabel(record: AgentCommissionRecordResponse): string {
+  return record.commissionType === "Percentage"
+    ? `PKR ${record.amount.toLocaleString()} (${record.commissionValue}%)`
+    : `PKR ${record.amount.toLocaleString()}`;
+}
+
+interface AgentFormValues {
+  fullName: string;
+  cnic: string;
+  phone: string;
+  email: string;
+  address: string;
+  commissionType: CommissionType;
+  commissionValue: number;
+  enablePortalAccess: boolean;
+  password?: string;
+}
+
 export default function AgentsListPage() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setCreateOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentResponse | null>(null);
+  const [commissionsAgent, setCommissionsAgent] = useState<AgentResponse | null>(null);
   const [searchText, setSearchText] = useState("");
-  const [createForm] = Form.useForm<CreateAgentRequest>();
-  const [editForm] = Form.useForm<UpdateAgentRequest>();
+  const [createForm] = Form.useForm<AgentFormValues>();
+  const [editForm] = Form.useForm<AgentFormValues>();
 
   const { data, isLoading } = useQuery({
     queryKey: AGENTS_QUERY_KEY,
     queryFn: listAgents,
   });
 
+  const { data: commissionRecords, isLoading: isLoadingCommissions } = useQuery({
+    queryKey: ["agents", commissionsAgent?.id, "commissions"] as const,
+    queryFn: () => getAgentCommissionHistory(commissionsAgent!.id),
+    enabled: commissionsAgent !== null,
+  });
+
   const invalidateAgents = () => queryClient.invalidateQueries({ queryKey: AGENTS_QUERY_KEY });
 
+  const toRequest = (values: AgentFormValues): CreateAgentRequest | UpdateAgentRequest => ({
+    fullName: values.fullName,
+    cnic: values.cnic,
+    phone: values.phone,
+    email: values.email,
+    address: values.address,
+    commissionType: values.commissionType,
+    commissionValue: values.commissionValue,
+    enablePortalAccess: values.enablePortalAccess ?? false,
+    password: values.password || null,
+  });
+
   const createMutation = useMutation({
-    mutationFn: (dto: CreateAgentRequest) => createAgent(dto),
+    mutationFn: (values: AgentFormValues) => createAgent(toRequest(values)),
     onSuccess: () => {
       message.success("Agent created.");
       setCreateOpen(false);
@@ -59,7 +106,8 @@ export default function AgentsListPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: UpdateAgentRequest }) => updateAgent(id, dto),
+    mutationFn: ({ id, values }: { id: string; values: AgentFormValues }) =>
+      updateAgent(id, toRequest(values)),
     onSuccess: () => {
       message.success("Agent updated.");
       setEditingAgent(null);
@@ -87,6 +135,8 @@ export default function AgentsListPage() {
       address: record.address,
       commissionType: record.commissionType,
       commissionValue: record.commissionValue,
+      enablePortalAccess: record.portalAccessEnabled,
+      password: undefined,
     });
   };
 
@@ -97,10 +147,19 @@ export default function AgentsListPage() {
     { title: "Email", dataIndex: "email", key: "email" },
     { title: "Commission", key: "commission", render: (_, record) => commissionValueLabel(record) },
     {
+      title: "Portal Access",
+      dataIndex: "portalAccessEnabled",
+      key: "portalAccessEnabled",
+      render: (enabled: boolean) => (enabled ? <Tag color="success">Enabled</Tag> : <Tag>Disabled</Tag>),
+    },
+    {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
         <Space>
+          <Button size="small" icon={<DollarOutlined />} onClick={() => setCommissionsAgent(record)}>
+            Commissions
+          </Button>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
             Edit
           </Button>
@@ -144,6 +203,38 @@ export default function AgentsListPage() {
     </>
   );
 
+  const portalAccessFields = (hasExistingPassword?: boolean) => (
+    <>
+      <Form.Item name="enablePortalAccess" label="Agent Portal Access" valuePropName="checked">
+        <Switch checkedChildren="Enabled" unCheckedChildren="Disabled" />
+      </Form.Item>
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev: AgentFormValues, curr: AgentFormValues) =>
+          prev.enablePortalAccess !== curr.enablePortalAccess
+        }
+      >
+        {({ getFieldValue }) =>
+          getFieldValue("enablePortalAccess") ? (
+            <Form.Item
+              name="password"
+              label={hasExistingPassword ? "New Password (leave blank to keep current)" : "Password"}
+              rules={[
+                { required: !hasExistingPassword, message: "Password is required to enable portal access" },
+                { min: 8, message: "Password must be at least 8 characters" },
+              ]}
+            >
+              <Input.Password
+                autoComplete="new-password"
+                placeholder={hasExistingPassword ? "Leave blank to keep current password" : "Set a login password"}
+              />
+            </Form.Item>
+          ) : null
+        }
+      </Form.Item>
+    </>
+  );
+
   return (
     <div>
       <div
@@ -178,7 +269,7 @@ export default function AgentsListPage() {
         destroyOnHidden
         width={420}
       >
-        <Form<CreateAgentRequest>
+        <Form<AgentFormValues>
           form={createForm}
           layout="vertical"
           onFinish={(values) => createMutation.mutate(values)}
@@ -210,6 +301,7 @@ export default function AgentsListPage() {
             <Input.TextArea rows={2} />
           </Form.Item>
           {commissionFields}
+          {portalAccessFields()}
           <Form.Item style={{ marginBottom: 0 }}>
             <Button type="primary" htmlType="submit" block loading={createMutation.isPending}>
               Create
@@ -225,12 +317,12 @@ export default function AgentsListPage() {
         destroyOnHidden
         width={420}
       >
-        <Form<UpdateAgentRequest>
+        <Form<AgentFormValues>
           form={editForm}
           layout="vertical"
           onFinish={(values) => {
             if (editingAgent) {
-              updateMutation.mutate({ id: editingAgent.id, dto: values });
+              updateMutation.mutate({ id: editingAgent.id, values });
             }
           }}
         >
@@ -261,12 +353,51 @@ export default function AgentsListPage() {
             <Input.TextArea rows={2} />
           </Form.Item>
           {commissionFields}
+          {portalAccessFields(Boolean(editingAgent?.portalAccessEnabled))}
           <Form.Item style={{ marginBottom: 0 }}>
             <Button type="primary" htmlType="submit" block loading={updateMutation.isPending}>
               Save
             </Button>
           </Form.Item>
         </Form>
+      </Drawer>
+
+      <Drawer
+        title={commissionsAgent ? `Commissions — ${commissionsAgent.fullName}` : "Commissions"}
+        open={commissionsAgent !== null}
+        onClose={() => setCommissionsAgent(null)}
+        destroyOnHidden
+        width={480}
+      >
+        <Table<AgentCommissionRecordResponse>
+          rowKey="id"
+          loading={isLoadingCommissions}
+          dataSource={commissionRecords ?? []}
+          pagination={false}
+          locale={{ emptyText: <Empty description="No commissions earned yet" /> }}
+          columns={[
+            {
+              title: "Earned",
+              dataIndex: "earnedAt",
+              key: "earnedAt",
+              render: (value: string) => dayjs(value).format("DD MMM YYYY"),
+            },
+            { title: "Plot", dataIndex: "plotNumber", key: "plotNumber" },
+            {
+              title: "Source",
+              dataIndex: "sourceType",
+              key: "sourceType",
+              render: (value: string) => (
+                <Tag color={value === "Resale" ? "purple" : "blue"}>{value}</Tag>
+              ),
+            },
+            {
+              title: "Amount",
+              key: "amount",
+              render: (_, record) => commissionRecordAmountLabel(record),
+            },
+          ]}
+        />
       </Drawer>
     </div>
   );

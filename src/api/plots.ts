@@ -7,6 +7,7 @@ import type {
   ChangePlotStatusRequest,
   CreatePlotRequest,
   IssueRefundRequest,
+  MarkPlotResaleSoldRequest,
   MergePlotsRequest,
   PlotResponse,
   RecordLatePaymentRequest,
@@ -94,6 +95,14 @@ export async function updatePlotPossessionStatus(
     `/plots/${id}/possession-status`,
     dto,
   );
+  return response.data.data;
+}
+
+export async function markPlotResaleSold(
+  id: string,
+  dto: MarkPlotResaleSoldRequest,
+): Promise<PlotResponse> {
+  const response = await axiosClient.put<ApiResponse<PlotResponse>>(`/plots/${id}/resale-sale`, dto);
   return response.data.data;
 }
 

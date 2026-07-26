@@ -26,6 +26,33 @@ export interface PlotHistoryLogEntry {
   by: string;
 }
 
+export type CommissionType = "Percentage" | "Fixed";
+
+export interface ResaleAgentCommission {
+  agentId: string;
+  type: CommissionType;
+  value: number;
+  amount: number;
+}
+
+export interface ResaleCommissionSummary {
+  buyerCommissionType: CommissionType | null;
+  buyerCommissionValue: number | null;
+  buyerCommissionAmount: number;
+  ownerCommissionType: CommissionType | null;
+  ownerCommissionValue: number | null;
+  ownerCommissionAmount: number;
+  totalCommissionAmount: number;
+  agentCommissions: ResaleAgentCommission[];
+  adminNetCommissionAmount: number;
+}
+
+export interface ResaleAgentCommissionRequest {
+  agentId: string;
+  type: CommissionType;
+  value: number;
+}
+
 export interface PlotResponse {
   id: string;
   adminId: string;
@@ -40,11 +67,21 @@ export interface PlotResponse {
   annualMaintenanceCharge: number;
   status: PlotStatus;
   possessionStatus: PossessionStatus;
+  isResale: boolean;
+  ownerAskingPrice: number | null;
+  listingPrice: number | null;
+  soldPrice: number | null;
+  soldDate: string | null;
+  buyerClientId: string | null;
+  resaleProfit: number | null;
   ownerClientIds: string[];
   historyLog: PlotHistoryLogEntry[];
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
+  resaleCommission: ResaleCommissionSummary | null;
+  openForAgents: boolean;
+  assignedAgentIds: string[];
 }
 
 export interface CreatePlotRequest {
@@ -57,6 +94,11 @@ export interface CreatePlotRequest {
   annualMaintenanceCharge: number;
   charges?: PlotCharge[] | null;
   ownerClientIds?: string[] | null;
+  isResale: boolean;
+  ownerAskingPrice?: number | null;
+  listingPrice?: number | null;
+  openForAgents: boolean;
+  assignedAgentIds?: string[] | null;
 }
 
 export interface UpdatePlotRequest {
@@ -67,6 +109,23 @@ export interface UpdatePlotRequest {
   category: PlotCategory;
   basePrice: number;
   ownerClientIds?: string[] | null;
+  isResale: boolean;
+  ownerAskingPrice?: number | null;
+  listingPrice?: number | null;
+  openForAgents: boolean;
+  assignedAgentIds?: string[] | null;
+}
+
+export interface MarkPlotResaleSoldRequest {
+  soldPrice: number;
+  buyerClientId?: string | null;
+  soldDate?: string | null;
+  notes?: string | null;
+  buyerCommissionType?: CommissionType | null;
+  buyerCommissionValue?: number | null;
+  ownerCommissionType?: CommissionType | null;
+  ownerCommissionValue?: number | null;
+  agentCommissions?: ResaleAgentCommissionRequest[] | null;
 }
 
 export interface AddOrUpdatePlotChargeRequest {

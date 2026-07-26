@@ -7,7 +7,9 @@ import {
   Popconfirm,
   Select,
   Space,
+  Switch,
   Table,
+  Tag,
   Typography,
   message,
 } from "antd";
@@ -31,6 +33,8 @@ interface ClientFormValues {
   emergencyContact?: string;
   linkedAgentId?: string;
   coOwnerClientIds?: string[];
+  enablePortalAccess: boolean;
+  password?: string;
 }
 
 export default function ClientsListPage() {
@@ -64,6 +68,8 @@ export default function ClientsListPage() {
     emergencyContact: values.emergencyContact || null,
     linkedAgentId: values.linkedAgentId || null,
     coOwnerClientIds: values.coOwnerClientIds ?? null,
+    enablePortalAccess: values.enablePortalAccess ?? false,
+    password: values.password || null,
   });
 
   const createMutation = useMutation({
@@ -108,6 +114,8 @@ export default function ClientsListPage() {
       emergencyContact: record.emergencyContact || undefined,
       linkedAgentId: record.linkedAgentId ?? undefined,
       coOwnerClientIds: record.coOwnerClientIds,
+      enablePortalAccess: record.portalAccessEnabled,
+      password: undefined,
     });
   };
 
@@ -126,6 +134,13 @@ export default function ClientsListPage() {
       render: (phones: string[]) => phones.join(", "),
     },
     { title: "Email", dataIndex: "email", key: "email" },
+    {
+      title: "Portal Access",
+      dataIndex: "portalAccessEnabled",
+      key: "portalAccessEnabled",
+      render: (enabled: boolean) =>
+        enabled ? <Tag color="success">Enabled</Tag> : <Tag>Disabled</Tag>,
+    },
     {
       title: "Actions",
       key: "actions",
@@ -155,7 +170,7 @@ export default function ClientsListPage() {
     );
   });
 
-  const clientFormFields = (excludeId?: string) => (
+  const clientFormFields = (excludeId?: string, hasExistingPassword?: boolean) => (
     <>
       <Form.Item name="fullName" label="Full Name" rules={[{ required: true, message: "Full name is required" }]}>
         <Input />
@@ -231,6 +246,33 @@ export default function ClientsListPage() {
           }
         />
       </Form.Item>
+      <Form.Item name="enablePortalAccess" label="Client Portal Access" valuePropName="checked">
+        <Switch checkedChildren="Enabled" unCheckedChildren="Disabled" />
+      </Form.Item>
+      <Form.Item
+        noStyle
+        shouldUpdate={(prev: ClientFormValues, curr: ClientFormValues) =>
+          prev.enablePortalAccess !== curr.enablePortalAccess
+        }
+      >
+        {({ getFieldValue }) =>
+          getFieldValue("enablePortalAccess") ? (
+            <Form.Item
+              name="password"
+              label={hasExistingPassword ? "New Password (leave blank to keep current)" : "Password"}
+              rules={[
+                { required: !hasExistingPassword, message: "Password is required to enable portal access" },
+                { min: 8, message: "Password must be at least 8 characters" },
+              ]}
+            >
+              <Input.Password
+                autoComplete="new-password"
+                placeholder={hasExistingPassword ? "Leave blank to keep current password" : "Set a login password"}
+              />
+            </Form.Item>
+          ) : null
+        }
+      </Form.Item>
     </>
   );
 
@@ -298,7 +340,7 @@ export default function ClientsListPage() {
             }
           }}
         >
-          {clientFormFields(editingClient?.id)}
+          {clientFormFields(editingClient?.id, editingClient?.portalAccessEnabled)}
           <Form.Item style={{ marginBottom: 0 }}>
             <Button type="primary" htmlType="submit" block loading={updateMutation.isPending}>
               Save

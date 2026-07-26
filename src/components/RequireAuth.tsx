@@ -17,7 +17,14 @@ export default function RequireAuth({ children, roles }: RequireAuthProps) {
   }
 
   if (roles && !roles.includes(claims.role)) {
-    const fallback = claims.role === "SuperMan" ? "/superman" : "/";
+    const fallback =
+      claims.role === "SuperMan"
+        ? "/superman"
+        : claims.role === "Client"
+          ? "/client-portal"
+          : claims.role === "Agent"
+            ? "/agent-portal"
+            : "/";
     return <Navigate to={fallback} replace />;
   }
 

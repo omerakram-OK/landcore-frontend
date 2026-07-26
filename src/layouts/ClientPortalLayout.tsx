@@ -2,48 +2,62 @@ import { useMemo, useState } from "react";
 import { Avatar, Dropdown, Layout, Menu, Space, Typography } from "antd";
 import type { MenuProps } from "antd";
 import {
-  BankOutlined,
-  CrownOutlined,
-  DashboardOutlined,
+  ContainerOutlined,
   FileDoneOutlined,
   LogoutOutlined,
+  ShoppingOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
+import { getMyProfile } from "../api/clientPortal";
 
 const { Header, Sider, Content } = Layout;
 
 const NAV_ITEMS: MenuProps["items"] = [
-  { key: "/superman", icon: <DashboardOutlined />, label: <Link to="/superman">Dashboard</Link> },
-  { key: "/superman/admins", icon: <BankOutlined />, label: <Link to="/superman/admins">Admins</Link> },
+  { key: "/client-portal", icon: <ContainerOutlined />, label: <Link to="/client-portal">My Plots</Link> },
   {
-    key: "/superman/subscriptions",
-    icon: <FileDoneOutlined />,
-    label: <Link to="/superman/subscriptions">Subscriptions</Link>,
+    key: "/client-portal/resale-purchases",
+    icon: <ShoppingOutlined />,
+    label: <Link to="/client-portal/resale-purchases">My Resale Purchases</Link>,
   },
-  { key: "/superman/reports", icon: <FileDoneOutlined />, label: <Link to="/superman/reports">Reports</Link> },
+  {
+    key: "/client-portal/documents",
+    icon: <FileDoneOutlined />,
+    label: <Link to="/client-portal/documents">My Documents</Link>,
+  },
 ];
 
-export default function SuperManLayout() {
+export default function ClientPortalLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { claims, logout } = useAuth();
+  const { data: profile } = useQuery({ queryKey: ["client-portal", "profile"], queryFn: getMyProfile });
 
   const selectedKey = useMemo(() => {
-    const sorted = [...(NAV_ITEMS ?? [])]
-      .filter((item): item is NonNullable<NonNullable<typeof NAV_ITEMS>[number]> => Boolean(item))
-      .sort((a, b) => String(b.key).length - String(a.key).length);
-    const match = sorted.find((item) => location.pathname.startsWith(String(item.key)));
-    return match ? String(match.key) : "/superman";
+    const match = NAV_ITEMS?.find(
+      (item) =>
+        item &&
+        "key" in item &&
+        typeof item.key === "string" &&
+        (item.key === location.pathname || (item.key !== "/client-portal" && location.pathname.startsWith(item.key))),
+    );
+    return match && "key" in match ? String(match.key) : "/client-portal";
   }, [location.pathname]);
 
   const userMenu: MenuProps["items"] = [
+    { key: "profile", icon: <UserOutlined />, label: "Profile" },
     { key: "logout", icon: <LogoutOutlined />, label: "Log out" },
   ];
 
   const onUserMenuClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "profile") {
+      navigate("/client-portal/profile");
+      return;
+    }
+
     if (key === "logout") {
       logout();
       navigate("/login", { replace: true });
@@ -52,7 +66,7 @@ export default function SuperManLayout() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} theme="dark" width={228}>
+      <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={228}>
         <div
           style={{
             height: 56,
@@ -60,15 +74,18 @@ export default function SuperManLayout() {
             display: "flex",
             alignItems: "center",
             justifyContent: collapsed ? "center" : "flex-start",
-            gap: 10,
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: collapsed ? 18 : 18,
-            letterSpacing: 0.3,
           }}
         >
-          <CrownOutlined style={{ color: "#14B8A6" }} />
-          {collapsed ? null : "Landcore Platform"}
+          <Typography.Text
+            style={{
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: collapsed ? 16 : 20,
+              letterSpacing: 0.3,
+            }}
+          >
+            {collapsed ? "LC" : "Landcore Portal"}
+          </Typography.Text>
         </div>
         <Menu theme="dark" mode="inline" selectedKeys={[selectedKey]} items={NAV_ITEMS} />
       </Sider>
@@ -85,8 +102,12 @@ export default function SuperManLayout() {
         >
           <Dropdown menu={{ items: userMenu, onClick: onUserMenuClick }} placement="bottomRight">
             <Space style={{ cursor: "pointer" }}>
-              <Avatar icon={<UserOutlined />} style={{ background: "#14B8A6" }} />
-              <Typography.Text>{claims?.email ?? "SuperMan"}</Typography.Text>
+              {profile?.photoDataUrl ? (
+                <Avatar src={profile.photoDataUrl} />
+              ) : (
+                <Avatar icon={<UserOutlined />} style={{ background: "#14B8A6" }} />
+              )}
+              <Typography.Text>{claims?.name ?? claims?.email}</Typography.Text>
             </Space>
           </Dropdown>
         </Header>

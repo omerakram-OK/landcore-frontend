@@ -9,6 +9,7 @@ export interface ClientResponse {
   emergencyContact: string;
   linkedAgentId: string | null;
   coOwnerClientIds: string[];
+  portalAccessEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +23,8 @@ export interface CreateClientRequest {
   emergencyContact?: string | null;
   linkedAgentId?: string | null;
   coOwnerClientIds?: string[] | null;
+  enablePortalAccess: boolean;
+  password?: string | null;
 }
 
 export interface UpdateClientRequest {
@@ -33,4 +36,6 @@ export interface UpdateClientRequest {
   emergencyContact?: string | null;
   linkedAgentId?: string | null;
   coOwnerClientIds?: string[] | null;
+  enablePortalAccess: boolean;
+  password?: string | null;
 }

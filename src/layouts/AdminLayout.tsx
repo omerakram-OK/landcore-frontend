@@ -33,6 +33,7 @@ function buildNavItems(isAdmin: boolean): MenuProps["items"] {
     { key: "/societies", icon: <BuildOutlined />, label: <Link to="/societies">Societies</Link> },
     { key: "/blocks", icon: <ApartmentOutlined />, label: <Link to="/blocks">Blocks</Link> },
     { key: "/plots", icon: <ContainerOutlined />, label: <Link to="/plots">Plots</Link> },
+    { key: "/resale-plots", icon: <ContainerOutlined />, label: <Link to="/resale-plots">Resale Plots</Link> },
     { key: "/agents", icon: <UsergroupAddOutlined />, label: <Link to="/agents">Agents</Link> },
     { key: "/leads", icon: <SolutionOutlined />, label: <Link to="/leads">Leads</Link> },
     { key: "/clients", icon: <UserOutlined />, label: <Link to="/clients">Clients</Link> },

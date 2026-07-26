@@ -4,6 +4,8 @@ import { THEME_CONFIG } from "./theme";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout";
 import SuperManLayout from "./layouts/SuperManLayout";
+import ClientPortalLayout from "./layouts/ClientPortalLayout";
+import AgentPortalLayout from "./layouts/AgentPortalLayout";
 import LoginPage from "./features/auth/LoginPage";
 import RequireAuth from "./components/RequireAuth";
 import ComingSoonPage from "./components/ComingSoonPage";
@@ -18,6 +20,8 @@ import AgentsListPage from "./features/agents/AgentsListPage";
 import LeadsListPage from "./features/leads/LeadsListPage";
 import ClientsListPage from "./features/clients/ClientsListPage";
 import PlotsListPage from "./features/plots/PlotsListPage";
+import ResalePlotsListPage from "./features/resalePlots/ResalePlotsListPage";
+import ResalePlotDetailPage from "./features/resalePlots/ResalePlotDetailPage";
 import BookingsListPage from "./features/bookings/BookingsListPage";
 import PaymentsListPage from "./features/payments/PaymentsListPage";
 import BankAccountsListPage from "./features/bankAccounts/BankAccountsListPage";
@@ -27,6 +31,14 @@ import ReportsPage from "./features/reports/ReportsPage";
 import SettingsPage from "./features/settings/SettingsPage";
 import PlatformReportsPage from "./features/superman-reports/PlatformReportsPage";
 import DashboardPage from "./features/dashboard/DashboardPage";
+import MyPlotsPage from "./features/clientPortal/MyPlotsPage";
+import MyResalePurchasesPage from "./features/clientPortal/MyResalePurchasesPage";
+import PlotDetailPage from "./features/clientPortal/PlotDetailPage";
+import MyDocumentsPage from "./features/clientPortal/MyDocumentsPage";
+import MyProfilePage from "./features/clientPortal/MyProfilePage";
+import AvailablePlotsPage from "./features/agentPortal/AvailablePlotsPage";
+import MyCommissionsPage from "./features/agentPortal/MyCommissionsPage";
+import AgentMyProfilePage from "./features/agentPortal/MyProfilePage";
 import { AuthProvider } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
@@ -78,6 +90,8 @@ function App() {
                 <Route path="leads" element={<LeadsListPage />} />
                 <Route path="clients" element={<ClientsListPage />} />
                 <Route path="plots" element={<PlotsListPage />} />
+                <Route path="resale-plots" element={<ResalePlotsListPage />} />
+                <Route path="resale-plots/:plotId" element={<ResalePlotDetailPage />} />
                 <Route path="bookings" element={<BookingsListPage />} />
                 <Route path="payments" element={<PaymentsListPage />} />
                 <Route path="bank-accounts" element={<BankAccountsListPage />} />
@@ -88,6 +102,34 @@ function App() {
                 {ADMIN_MODULE_ROUTES.map(({ path, title }) => (
                   <Route key={path} path={path} element={<ComingSoonPage title={title} />} />
                 ))}
+              </Route>
+
+              <Route
+                path="/client-portal"
+                element={
+                  <RequireAuth roles={["Client"]}>
+                    <ClientPortalLayout />
+                  </RequireAuth>
+                }
+              >
+                <Route index element={<MyPlotsPage />} />
+                <Route path="resale-purchases" element={<MyResalePurchasesPage />} />
+                <Route path="plots/:plotId" element={<PlotDetailPage />} />
+                <Route path="documents" element={<MyDocumentsPage />} />
+                <Route path="profile" element={<MyProfilePage />} />
+              </Route>
+
+              <Route
+                path="/agent-portal"
+                element={
+                  <RequireAuth roles={["Agent"]}>
+                    <AgentPortalLayout />
+                  </RequireAuth>
+                }
+              >
+                <Route index element={<AvailablePlotsPage />} />
+                <Route path="commissions" element={<MyCommissionsPage />} />
+                <Route path="profile" element={<AgentMyProfilePage />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

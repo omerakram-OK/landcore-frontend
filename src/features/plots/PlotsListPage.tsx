@@ -14,6 +14,7 @@ import {
   Popconfirm,
   Select,
   Space,
+  Switch,
   Table,
   Tag,
   Typography,
@@ -46,6 +47,7 @@ import {
 import { listBlocks } from "../../api/blocks";
 import { listSocieties } from "../../api/societies";
 import { listClients } from "../../api/clients";
+import { listAgents } from "../../api/agents";
 import { useAuth } from "../../hooks/useAuth";
 import { isApprovalRequestResponse } from "../../types/approval";
 import type {
@@ -70,6 +72,7 @@ const PLOTS_QUERY_KEY = ["plots"] as const;
 const BLOCKS_QUERY_KEY = ["blocks"] as const;
 const SOCIETIES_QUERY_KEY = ["societies"] as const;
 const CLIENTS_QUERY_KEY = ["clients"] as const;
+const AGENTS_QUERY_KEY = ["agents"] as const;
 const REFUNDS_QUERY_KEY = ["refunds"] as const;
 
 const CATEGORY_OPTIONS: Array<{ label: string; value: PlotCategory }> = [
@@ -115,6 +118,8 @@ interface PlotFormValues {
   annualMaintenanceCharge: number;
   ownerClientIds?: string[];
   charges?: PlotChargeFormValue[];
+  openForAgents?: boolean;
+  assignedAgentIds?: string[];
 }
 
 interface NewPlotFormValue {
@@ -221,12 +226,21 @@ export default function PlotsListPage() {
     queryFn: listClients,
   });
 
+  const { data: agents } = useQuery({
+    queryKey: AGENTS_QUERY_KEY,
+    queryFn: listAgents,
+  });
+
   const blockOptions = (blocks ?? []).map((block) => ({ label: block.name, value: block.id }));
   const blockNameById = new Map((blocks ?? []).map((block) => [block.id, block.name]));
   const societyNameById = new Map((societies ?? []).map((society) => [society.id, society.name]));
   const clientOptions = (clients ?? []).map((client) => ({
     label: client.fullName,
     value: client.id,
+  }));
+  const agentOptions = (agents ?? []).map((agent) => ({
+    label: agent.fullName,
+    value: agent.id,
   }));
 
   const invalidatePlots = () => queryClient.invalidateQueries({ queryKey: PLOTS_QUERY_KEY });
@@ -243,6 +257,11 @@ export default function PlotsListPage() {
       .filter((charge) => charge?.chargeType?.trim())
       .map((charge) => ({ chargeType: charge.chargeType.trim(), amount: charge.amount })),
     ownerClientIds: values.ownerClientIds ?? null,
+    isResale: false,
+    ownerAskingPrice: null,
+    listingPrice: null,
+    openForAgents: values.openForAgents ?? false,
+    assignedAgentIds: values.assignedAgentIds ?? null,
   });
 
   const toUpdateRequest = (values: PlotFormValues): UpdatePlotRequest => ({
@@ -253,6 +272,11 @@ export default function PlotsListPage() {
     category: values.category,
     basePrice: values.basePrice,
     ownerClientIds: values.ownerClientIds ?? null,
+    isResale: false,
+    ownerAskingPrice: null,
+    listingPrice: null,
+    openForAgents: values.openForAgents ?? false,
+    assignedAgentIds: values.assignedAgentIds ?? null,
   });
 
   const createMutation = useMutation({
@@ -304,6 +328,7 @@ export default function PlotsListPage() {
     },
     onError: (error) => message.error(getApiErrorMessage(error, "Failed to update possession status.")),
   });
+
 
   const repossessionScanMutation = useMutation({
     mutationFn: runRepossessionScan,
@@ -462,6 +487,8 @@ export default function PlotsListPage() {
       basePrice: record.basePrice,
       annualMaintenanceCharge: record.annualMaintenanceCharge,
       ownerClientIds: record.ownerClientIds,
+      openForAgents: record.openForAgents,
+      assignedAgentIds: record.assignedAgentIds,
     });
   };
 
@@ -492,19 +519,21 @@ export default function PlotsListPage() {
     });
   };
 
-  const filteredPlots = (data ?? []).filter((plot) => {
-    const term = searchText.trim().toLowerCase();
-    if (!term) return true;
-    const blockName = blockNameById.get(plot.blockId) ?? "";
-    const societyName = societyNameById.get(plot.societyId) ?? "";
-    return (
-      plot.plotNumber.toLowerCase().includes(term) ||
-      plot.category.toLowerCase().includes(term) ||
-      plot.status.toLowerCase().includes(term) ||
-      blockName.toLowerCase().includes(term) ||
-      societyName.toLowerCase().includes(term)
-    );
-  });
+  const filteredPlots = (data ?? [])
+    .filter((plot) => !plot.isResale)
+    .filter((plot) => {
+      const term = searchText.trim().toLowerCase();
+      if (!term) return true;
+      const blockName = blockNameById.get(plot.blockId) ?? "";
+      const societyName = societyNameById.get(plot.societyId) ?? "";
+      return (
+        plot.plotNumber.toLowerCase().includes(term) ||
+        plot.category.toLowerCase().includes(term) ||
+        plot.status.toLowerCase().includes(term) ||
+        blockName.toLowerCase().includes(term) ||
+        societyName.toLowerCase().includes(term)
+      );
+    });
 
   const columns: TableColumnsType<PlotResponse> = [
     { title: "Plot #", dataIndex: "plotNumber", key: "plotNumber" },
@@ -567,6 +596,18 @@ export default function PlotsListPage() {
               Not Handed Over
             </Button>
           </Popconfirm>
+        ),
+    },
+    {
+      title: "Agents",
+      key: "agentVisibility",
+      render: (_, record) =>
+        record.openForAgents ? (
+          <Tag color="cyan">Open to all</Tag>
+        ) : record.assignedAgentIds.length > 0 ? (
+          <Tag color="geekblue">{record.assignedAgentIds.length} assigned</Tag>
+        ) : (
+          <Tag>Not visible</Tag>
         ),
     },
     {
@@ -694,6 +735,31 @@ export default function PlotsListPage() {
           showSearch
           placeholder="Select owner clients"
           options={clientOptions}
+          filterOption={(input, option) =>
+            String(option?.label ?? "")
+              .toLowerCase()
+              .includes(input.toLowerCase())
+          }
+        />
+      </Form.Item>
+      <Divider titlePlacement="left" plain>
+        Agent Visibility
+      </Divider>
+      <Form.Item
+        name="openForAgents"
+        label="Open to all Agents"
+        valuePropName="checked"
+        tooltip="When enabled, every Agent can see this plot as available to sell."
+      >
+        <Switch />
+      </Form.Item>
+      <Form.Item name="assignedAgentIds" label="Assigned Agents (optional)">
+        <Select
+          mode="multiple"
+          allowClear
+          showSearch
+          placeholder="Select specific agents who can see this plot"
+          options={agentOptions}
           filterOption={(input, option) =>
             String(option?.label ?? "")
               .toLowerCase()
