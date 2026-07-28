@@ -23,7 +23,7 @@ import {
   message,
 } from "antd";
 import type { MenuProps, TableColumnsType, UploadFile } from "antd";
-import { DeleteOutlined, DownOutlined, EditOutlined, MinusCircleOutlined, MoreOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
+import {  DownOutlined, EditOutlined, MinusCircleOutlined, MoreOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";

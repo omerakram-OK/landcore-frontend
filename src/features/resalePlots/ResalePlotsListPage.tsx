@@ -20,7 +20,7 @@ import {
   message,
 } from "antd";
 import type { MenuProps, TableColumnsType } from "antd";
-import { DeleteOutlined, EditOutlined, EyeOutlined, MinusCircleOutlined, MoreOutlined, PlusOutlined } from "@ant-design/icons";
+import { EditOutlined, EyeOutlined, MinusCircleOutlined, MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
