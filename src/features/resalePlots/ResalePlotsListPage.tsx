@@ -3,11 +3,11 @@ import {
   Button,
   DatePicker,
   Divider,
+  Dropdown,
   Drawer,
   Input,
   InputNumber,
   Modal,
-  Popconfirm,
   Popover,
   Segmented,
   Select,
@@ -19,8 +19,8 @@ import {
   Form,
   message,
 } from "antd";
-import type { TableColumnsType } from "antd";
-import { DeleteOutlined, EditOutlined, EyeOutlined, MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import type { MenuProps, TableColumnsType } from "antd";
+import { DeleteOutlined, EditOutlined, EyeOutlined, MinusCircleOutlined, MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -36,6 +36,7 @@ import { listBlocks } from "../../api/blocks";
 import { listSocieties } from "../../api/societies";
 import { listClients } from "../../api/clients";
 import { listAgents } from "../../api/agents";
+import { listMarketplaceListings, publishMarketplaceListing } from "../../api/marketplace";
 import type {
   CommissionType,
   CreatePlotRequest,
@@ -52,6 +53,7 @@ const BLOCKS_QUERY_KEY = ["blocks"] as const;
 const SOCIETIES_QUERY_KEY = ["societies"] as const;
 const CLIENTS_QUERY_KEY = ["clients"] as const;
 const AGENTS_QUERY_KEY = ["agents"] as const;
+const MARKETPLACE_LISTINGS_QUERY_KEY = ["marketplace", "listings"] as const;
 
 const COMMISSION_TYPE_OPTIONS: Array<{ label: string; value: CommissionType | "" }> = [
   { label: "No commission", value: "" },
@@ -178,9 +180,21 @@ export default function ResalePlotsListPage() {
     queryFn: listAgents,
   });
 
-  const blockOptions = (blocks ?? []).map((block) => ({ label: block.name, value: block.id }));
-  const blockNameById = new Map((blocks ?? []).map((block) => [block.id, block.name]));
+  const { data: marketplaceListings } = useQuery({
+    queryKey: MARKETPLACE_LISTINGS_QUERY_KEY,
+    queryFn: listMarketplaceListings,
+  });
+
+  const publishedPlotIds = new Set(
+    (marketplaceListings ?? []).filter((listing) => listing.isActive).map((listing) => listing.plotId),
+  );
+
   const societyNameById = new Map((societies ?? []).map((society) => [society.id, society.name]));
+  const blockOptions = (blocks ?? []).map((block) => ({
+    label: `${block.name} (${societyNameById.get(block.societyId) ?? "No Society"})`,
+    value: block.id,
+  }));
+  const blockNameById = new Map((blocks ?? []).map((block) => [block.id, block.name]));
   const clientNameById = new Map((clients ?? []).map((client) => [client.id, client.fullName]));
   const clientOptions = (clients ?? []).map((client) => ({ label: client.fullName, value: client.id }));
   const agentNameById = new Map((agents ?? []).map((agent) => [agent.id, agent.fullName]));
@@ -294,6 +308,16 @@ export default function ResalePlotsListPage() {
       void invalidatePlots();
     },
     onError: (error) => message.error(getApiErrorMessage(error, "Failed to mark the plot as sold.")),
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: (plotId: string) => publishMarketplaceListing({ plotId, notes: null }),
+    onSuccess: () => {
+      message.success("Plot published to the marketplace.");
+      void invalidatePlots();
+      void queryClient.invalidateQueries({ queryKey: MARKETPLACE_LISTINGS_QUERY_KEY });
+    },
+    onError: (error) => message.error(getApiErrorMessage(error, "Failed to publish to the marketplace.")),
   });
 
   const openEdit = (record: PlotResponse) => {
@@ -453,32 +477,58 @@ export default function ResalePlotsListPage() {
     {
       title: "Actions",
       key: "actions",
-      render: (_, record) => (
-        <Space wrap>
-          <Button
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/resale-plots/${record.id}`)}
-          >
-            Details
-          </Button>
-          {record.soldPrice === null ? (
-            <>
+      render: (_, record) => {
+        const isSold = record.soldPrice !== null;
+        const isPublished = publishedPlotIds.has(record.id);
+
+        const menuItems: MenuProps["items"] = [];
+
+        if (!isSold) {
+          menuItems.push({ key: "mark-sold", label: "Mark as Sold", onClick: () => openSell(record) });
+          menuItems.push(
+            isPublished
+              ? { key: "on-marketplace", label: "On Marketplace", disabled: true }
+              : {
+                  key: "publish",
+                  label: "Publish to Marketplace",
+                  onClick: () =>
+                    Modal.confirm({
+                      title: "Publish this plot to the marketplace?",
+                      onOk: () => publishMutation.mutate(record.id),
+                    }),
+                },
+          );
+          menuItems.push({ type: "divider" });
+        }
+
+        menuItems.push({
+          key: "delete",
+          label: "Delete",
+          danger: true,
+          onClick: () =>
+            Modal.confirm({
+              title: "Delete this resale plot?",
+              okButtonProps: { danger: true },
+              onOk: () => deleteMutation.mutate(record.id),
+            }),
+        });
+
+        return (
+          <Space>
+            <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/resale-plots/${record.id}`)}>
+              Details
+            </Button>
+            {!isSold ? (
               <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
                 Edit
               </Button>
-              <Button size="small" type="primary" onClick={() => openSell(record)}>
-                Mark as Sold
-              </Button>
-            </>
-          ) : null}
-          <Popconfirm title="Delete this resale plot?" onConfirm={() => deleteMutation.mutate(record.id)}>
-            <Button size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
-              Delete
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
+            ) : null}
+            <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          </Space>
+        );
+      },
     },
   ];
 

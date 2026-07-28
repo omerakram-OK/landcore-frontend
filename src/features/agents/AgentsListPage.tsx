@@ -58,6 +58,8 @@ interface AgentFormValues {
   commissionValue: number;
   enablePortalAccess: boolean;
   password?: string;
+  enableMarketplaceView?: boolean;
+  enableMarketplacePublish?: boolean;
 }
 
 export default function AgentsListPage() {
@@ -92,6 +94,8 @@ export default function AgentsListPage() {
     commissionValue: values.commissionValue,
     enablePortalAccess: values.enablePortalAccess ?? false,
     password: values.password || null,
+    enableMarketplaceView: values.enableMarketplaceView ?? false,
+    enableMarketplacePublish: values.enableMarketplacePublish ?? false,
   });
 
   const createMutation = useMutation({
@@ -137,6 +141,8 @@ export default function AgentsListPage() {
       commissionValue: record.commissionValue,
       enablePortalAccess: record.portalAccessEnabled,
       password: undefined,
+      enableMarketplaceView: record.marketplaceViewEnabled,
+      enableMarketplacePublish: record.marketplacePublishEnabled,
     });
   };
 
@@ -151,6 +157,20 @@ export default function AgentsListPage() {
       dataIndex: "portalAccessEnabled",
       key: "portalAccessEnabled",
       render: (enabled: boolean) => (enabled ? <Tag color="success">Enabled</Tag> : <Tag>Disabled</Tag>),
+    },
+    {
+      title: "Marketplace",
+      key: "marketplace",
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Tag color={record.marketplaceViewEnabled ? "blue" : "default"}>
+            View {record.marketplaceViewEnabled ? "On" : "Off"}
+          </Tag>
+          <Tag color={record.marketplacePublishEnabled ? "cyan" : "default"}>
+            Publish {record.marketplacePublishEnabled ? "On" : "Off"}
+          </Tag>
+        </Space>
+      ),
     },
     {
       title: "Actions",
@@ -235,6 +255,17 @@ export default function AgentsListPage() {
     </>
   );
 
+  const marketplaceAccessFields = (
+    <>
+      <Form.Item name="enableMarketplaceView" label="Can View Marketplace" valuePropName="checked">
+        <Switch checkedChildren="On" unCheckedChildren="Off" />
+      </Form.Item>
+      <Form.Item name="enableMarketplacePublish" label="Can Publish to Marketplace" valuePropName="checked">
+        <Switch checkedChildren="On" unCheckedChildren="Off" />
+      </Form.Item>
+    </>
+  );
+
   return (
     <div>
       <div
@@ -302,6 +333,7 @@ export default function AgentsListPage() {
           </Form.Item>
           {commissionFields}
           {portalAccessFields()}
+          {marketplaceAccessFields}
           <Form.Item style={{ marginBottom: 0 }}>
             <Button type="primary" htmlType="submit" block loading={createMutation.isPending}>
               Create
@@ -354,6 +386,7 @@ export default function AgentsListPage() {
           </Form.Item>
           {commissionFields}
           {portalAccessFields(Boolean(editingAgent?.portalAccessEnabled))}
+          {marketplaceAccessFields}
           <Form.Item style={{ marginBottom: 0 }}>
             <Button type="primary" htmlType="submit" block loading={updateMutation.isPending}>
               Save

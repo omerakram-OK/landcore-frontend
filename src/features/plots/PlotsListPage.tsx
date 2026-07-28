@@ -4,6 +4,7 @@ import {
   Button,
   DatePicker,
   Divider,
+  Dropdown,
   Drawer,
   Empty,
   Form,
@@ -21,8 +22,8 @@ import {
   Upload,
   message,
 } from "antd";
-import type { TableColumnsType, UploadFile } from "antd";
-import { DeleteOutlined, EditOutlined, MinusCircleOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
+import type { MenuProps, TableColumnsType, UploadFile } from "antd";
+import { DeleteOutlined, DownOutlined, EditOutlined, MinusCircleOutlined, MoreOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
@@ -48,6 +49,7 @@ import { listBlocks } from "../../api/blocks";
 import { listSocieties } from "../../api/societies";
 import { listClients } from "../../api/clients";
 import { listAgents } from "../../api/agents";
+import { listMarketplaceListings, publishMarketplaceListing } from "../../api/marketplace";
 import { useAuth } from "../../hooks/useAuth";
 import { isApprovalRequestResponse } from "../../types/approval";
 import type {
@@ -74,6 +76,7 @@ const SOCIETIES_QUERY_KEY = ["societies"] as const;
 const CLIENTS_QUERY_KEY = ["clients"] as const;
 const AGENTS_QUERY_KEY = ["agents"] as const;
 const REFUNDS_QUERY_KEY = ["refunds"] as const;
+const MARKETPLACE_LISTINGS_QUERY_KEY = ["marketplace", "listings"] as const;
 
 const CATEGORY_OPTIONS: Array<{ label: string; value: PlotCategory }> = [
   { label: "Residential", value: "Residential" },
@@ -231,9 +234,21 @@ export default function PlotsListPage() {
     queryFn: listAgents,
   });
 
-  const blockOptions = (blocks ?? []).map((block) => ({ label: block.name, value: block.id }));
-  const blockNameById = new Map((blocks ?? []).map((block) => [block.id, block.name]));
+  const { data: marketplaceListings } = useQuery({
+    queryKey: MARKETPLACE_LISTINGS_QUERY_KEY,
+    queryFn: listMarketplaceListings,
+  });
+
+  const publishedPlotIds = new Set(
+    (marketplaceListings ?? []).filter((listing) => listing.isActive).map((listing) => listing.plotId),
+  );
+
   const societyNameById = new Map((societies ?? []).map((society) => [society.id, society.name]));
+  const blockOptions = (blocks ?? []).map((block) => ({
+    label: `${block.name} (${societyNameById.get(block.societyId) ?? "No Society"})`,
+    value: block.id,
+  }));
+  const blockNameById = new Map((blocks ?? []).map((block) => [block.id, block.name]));
   const clientOptions = (clients ?? []).map((client) => ({
     label: client.fullName,
     value: client.id,
@@ -327,6 +342,16 @@ export default function PlotsListPage() {
       void invalidatePlots();
     },
     onError: (error) => message.error(getApiErrorMessage(error, "Failed to update possession status.")),
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: (plotId: string) => publishMarketplaceListing({ plotId, notes: null }),
+    onSuccess: () => {
+      message.success("Plot published to the marketplace.");
+      void invalidatePlots();
+      void queryClient.invalidateQueries({ queryKey: MARKETPLACE_LISTINGS_QUERY_KEY });
+    },
+    onError: (error) => message.error(getApiErrorMessage(error, "Failed to publish to the marketplace.")),
   });
 
 
@@ -560,24 +585,25 @@ export default function PlotsListPage() {
       title: "Status",
       key: "status",
       render: (_, record) => {
-        const nextOptions = (PLOT_STATUS_TRANSITIONS[record.status] ?? []).map((next) => ({
-          label: next,
-          value: next,
-        }));
+        const nextStatuses = PLOT_STATUS_TRANSITIONS[record.status] ?? [];
+        if (nextStatuses.length === 0) {
+          return <Tag color={statusColor(record.status)}>{record.status}</Tag>;
+        }
         return (
-          <Space direction="vertical" size={4}>
-            <Tag color={statusColor(record.status)}>{record.status}</Tag>
-            {nextOptions.length > 0 ? (
-              <Select<PlotStatus>
-                size="small"
-                placeholder="Change status"
-                style={{ width: 140 }}
-                value={undefined}
-                options={nextOptions}
-                onChange={(value) => confirmStatusChange(record, value)}
-              />
-            ) : null}
-          </Space>
+          <Dropdown
+            trigger={["click"]}
+            menu={{
+              items: nextStatuses.map((next) => ({
+                key: next,
+                label: `Mark as ${next}`,
+                onClick: () => confirmStatusChange(record, next),
+              })),
+            }}
+          >
+            <Tag color={statusColor(record.status)} style={{ cursor: "pointer" }}>
+              {record.status} <DownOutlined style={{ fontSize: 10 }} />
+            </Tag>
+          </Dropdown>
         );
       },
     },
@@ -613,29 +639,61 @@ export default function PlotsListPage() {
     {
       title: "Actions",
       key: "actions",
-      render: (_, record) => (
-        <Space wrap>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
-            Edit
-          </Button>
-          <Button size="small" onClick={() => openCharges(record)}>
-            Charges ({record.charges.length})
-          </Button>
-          <Button size="small" onClick={() => setSplittingPlot(record)}>
-            Split
-          </Button>
-          {record.status === "Repossessed" ? (
-            <Button size="small" onClick={() => openLatePayment(record)}>
-              Record Late Payment
+      render: (_, record) => {
+        const isPublished = publishedPlotIds.has(record.id);
+
+        const menuItems: MenuProps["items"] = [];
+
+        if (record.status === "Repossessed") {
+          menuItems.push({ key: "late-payment", label: "Record Late Payment", onClick: () => openLatePayment(record) });
+        }
+
+        if (record.status === "Available") {
+          menuItems.push(
+            isPublished
+              ? { key: "on-marketplace", label: "On Marketplace", disabled: true }
+              : {
+                  key: "publish",
+                  label: "Publish to Marketplace",
+                  onClick: () =>
+                    Modal.confirm({
+                      title: "Publish this plot to the marketplace?",
+                      onOk: () => publishMutation.mutate(record.id),
+                    }),
+                },
+          );
+        }
+
+        if (menuItems.length > 0) {
+          menuItems.push({ type: "divider" });
+        }
+
+        menuItems.push({
+          key: "delete",
+          label: "Delete",
+          danger: true,
+          onClick: () =>
+            Modal.confirm({
+              title: "Delete this plot?",
+              okButtonProps: { danger: true },
+              onOk: () => deleteMutation.mutate(record.id),
+            }),
+        });
+
+        return (
+          <Space>
+            <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
+              Edit
             </Button>
-          ) : null}
-          <Popconfirm title="Delete this plot?" onConfirm={() => deleteMutation.mutate(record.id)}>
-            <Button size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
-              Delete
+            <Button size="small" onClick={() => openCharges(record)}>
+              Charges ({record.charges.length})
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
+            <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+              <Button size="small" icon={<MoreOutlined />} />
+            </Dropdown>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -872,15 +930,27 @@ export default function PlotsListPage() {
           Plots
         </Typography.Title>
         <Space>
-          <Popconfirm
-            title="Run repossession scan?"
-            description="Flags every Sold plot with a missed installment as Overdue."
-            onConfirm={() => repossessionScanMutation.mutate()}
+          <Dropdown
+            trigger={["click"]}
+            menu={{
+              items: [
+                {
+                  key: "repossession-scan",
+                  label: "Run Repossession Scan",
+                  onClick: () =>
+                    Modal.confirm({
+                      title: "Run repossession scan?",
+                      content: "Flags every Sold plot with a missed installment as Overdue.",
+                      onOk: () => repossessionScanMutation.mutate(),
+                    }),
+                },
+                { key: "refunds", label: "Refunds", onClick: () => setRefundsOpen(true) },
+                { key: "merge", label: "Merge Plots", onClick: () => setMergeOpen(true) },
+              ],
+            }}
           >
-            <Button loading={repossessionScanMutation.isPending}>Run Repossession Scan</Button>
-          </Popconfirm>
-          <Button onClick={() => setRefundsOpen(true)}>Refunds</Button>
-          <Button onClick={() => setMergeOpen(true)}>Merge Plots</Button>
+            <Button icon={<MoreOutlined />}>More</Button>
+          </Dropdown>
           <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
             Import Plots
           </Button>

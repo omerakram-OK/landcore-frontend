@@ -11,6 +11,8 @@ export interface AgentResponse {
   commissionType: CommissionType;
   commissionValue: number;
   portalAccessEnabled: boolean;
+  marketplaceViewEnabled: boolean;
+  marketplacePublishEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +27,8 @@ export interface CreateAgentRequest {
   commissionValue: number;
   enablePortalAccess: boolean;
   password?: string | null;
+  enableMarketplaceView: boolean;
+  enableMarketplacePublish: boolean;
 }
 
 export interface UpdateAgentRequest {
@@ -37,6 +41,8 @@ export interface UpdateAgentRequest {
   commissionValue: number;
   enablePortalAccess: boolean;
   password?: string | null;
+  enableMarketplaceView: boolean;
+  enableMarketplacePublish: boolean;
 }
 
 export type CommissionSourceType = "Booking" | "Resale";

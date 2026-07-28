@@ -35,6 +35,8 @@ interface ClientFormValues {
   coOwnerClientIds?: string[];
   enablePortalAccess: boolean;
   password?: string;
+  enableMarketplaceView?: boolean;
+  enableMarketplacePublish?: boolean;
 }
 
 export default function ClientsListPage() {
@@ -70,6 +72,8 @@ export default function ClientsListPage() {
     coOwnerClientIds: values.coOwnerClientIds ?? null,
     enablePortalAccess: values.enablePortalAccess ?? false,
     password: values.password || null,
+    enableMarketplaceView: values.enableMarketplaceView ?? false,
+    enableMarketplacePublish: values.enableMarketplacePublish ?? false,
   });
 
   const createMutation = useMutation({
@@ -116,6 +120,8 @@ export default function ClientsListPage() {
       coOwnerClientIds: record.coOwnerClientIds,
       enablePortalAccess: record.portalAccessEnabled,
       password: undefined,
+      enableMarketplaceView: record.marketplaceViewEnabled,
+      enableMarketplacePublish: record.marketplacePublishEnabled,
     });
   };
 
@@ -140,6 +146,20 @@ export default function ClientsListPage() {
       key: "portalAccessEnabled",
       render: (enabled: boolean) =>
         enabled ? <Tag color="success">Enabled</Tag> : <Tag>Disabled</Tag>,
+    },
+    {
+      title: "Marketplace",
+      key: "marketplace",
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Tag color={record.marketplaceViewEnabled ? "blue" : "default"}>
+            View {record.marketplaceViewEnabled ? "On" : "Off"}
+          </Tag>
+          <Tag color={record.marketplacePublishEnabled ? "cyan" : "default"}>
+            Publish {record.marketplacePublishEnabled ? "On" : "Off"}
+          </Tag>
+        </Space>
+      ),
     },
     {
       title: "Actions",
@@ -272,6 +292,12 @@ export default function ClientsListPage() {
             </Form.Item>
           ) : null
         }
+      </Form.Item>
+      <Form.Item name="enableMarketplaceView" label="Can View Marketplace" valuePropName="checked">
+        <Switch checkedChildren="On" unCheckedChildren="Off" />
+      </Form.Item>
+      <Form.Item name="enableMarketplacePublish" label="Can Publish to Marketplace" valuePropName="checked">
+        <Switch checkedChildren="On" unCheckedChildren="Off" />
       </Form.Item>
     </>
   );

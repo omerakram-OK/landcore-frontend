@@ -37,6 +37,7 @@ export const PERMISSION_MODULES: Array<{ module: string; actions: string[] }> = 
   { module: "Receipts", actions: ["View"] },
   { module: "Cheques", actions: ["View", "Edit"] },
   { module: "BankAccounts", actions: ["Create", "View", "Edit", "Delete"] },
+  { module: "Marketplace", actions: ["Create", "View", "Edit"] },
   { module: "Documents", actions: ["Generate", "View"] },
   { module: "Reports", actions: ["View"] },
   { module: "Approvals", actions: ["Propose", "View", "Decide"] },

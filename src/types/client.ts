@@ -10,6 +10,8 @@ export interface ClientResponse {
   linkedAgentId: string | null;
   coOwnerClientIds: string[];
   portalAccessEnabled: boolean;
+  marketplaceViewEnabled: boolean;
+  marketplacePublishEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +27,8 @@ export interface CreateClientRequest {
   coOwnerClientIds?: string[] | null;
   enablePortalAccess: boolean;
   password?: string | null;
+  enableMarketplaceView: boolean;
+  enableMarketplacePublish: boolean;
 }
 
 export interface UpdateClientRequest {
@@ -38,4 +42,6 @@ export interface UpdateClientRequest {
   coOwnerClientIds?: string[] | null;
   enablePortalAccess: boolean;
   password?: string | null;
+  enableMarketplaceView: boolean;
+  enableMarketplacePublish: boolean;
 }

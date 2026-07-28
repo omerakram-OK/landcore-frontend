@@ -39,7 +39,11 @@ import MyProfilePage from "./features/clientPortal/MyProfilePage";
 import AvailablePlotsPage from "./features/agentPortal/AvailablePlotsPage";
 import MyCommissionsPage from "./features/agentPortal/MyCommissionsPage";
 import AgentMyProfilePage from "./features/agentPortal/MyProfilePage";
+import MarketplacePage from "./features/marketplace/MarketplacePage";
+import ClientMarketplacePage from "./features/clientPortal/MarketplacePage";
+import AgentMarketplacePage from "./features/agentPortal/MarketplacePage";
 import { AuthProvider } from "./hooks/useAuth";
+import { MarketplaceChatProvider } from "./hooks/useMarketplaceChatHub";
 
 const queryClient = new QueryClient();
 
@@ -53,87 +57,92 @@ function App() {
       <ConfigProvider theme={THEME_CONFIG}>
         <BrowserRouter>
           <AuthProvider>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
+            <MarketplaceChatProvider>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
 
-              <Route
-                path="/superman"
-                element={
-                  <RequireAuth roles={["SuperMan"]}>
-                    <SuperManLayout />
-                  </RequireAuth>
-                }
-              >
-                <Route index element={<PlatformDashboardPage />} />
-                <Route path="admins" element={<AdminsListPage />} />
-                <Route path="subscriptions" element={<SubscriptionsListPage />} />
-                <Route path="reports" element={<PlatformReportsPage />} />
-                {SUPERMAN_MODULE_ROUTES.map(({ path, title }) => (
-                  <Route key={path} path={path} element={<ComingSoonPage title={title} />} />
-                ))}
-              </Route>
+                <Route
+                  path="/superman"
+                  element={
+                    <RequireAuth roles={["SuperMan"]}>
+                      <SuperManLayout />
+                    </RequireAuth>
+                  }
+                >
+                  <Route index element={<PlatformDashboardPage />} />
+                  <Route path="admins" element={<AdminsListPage />} />
+                  <Route path="subscriptions" element={<SubscriptionsListPage />} />
+                  <Route path="reports" element={<PlatformReportsPage />} />
+                  {SUPERMAN_MODULE_ROUTES.map(({ path, title }) => (
+                    <Route key={path} path={path} element={<ComingSoonPage title={title} />} />
+                  ))}
+                </Route>
 
-              <Route
-                path="/"
-                element={
-                  <RequireAuth roles={["Admin", "Employee"]}>
-                    <AdminLayout />
-                  </RequireAuth>
-                }
-              >
-                <Route index element={<DashboardPage />} />
-                <Route path="employees" element={<EmployeesListPage />} />
-                <Route path="designations" element={<DesignationsListPage />} />
-                <Route path="societies" element={<SocietiesListPage />} />
-                <Route path="blocks" element={<BlocksListPage />} />
-                <Route path="agents" element={<AgentsListPage />} />
-                <Route path="leads" element={<LeadsListPage />} />
-                <Route path="clients" element={<ClientsListPage />} />
-                <Route path="plots" element={<PlotsListPage />} />
-                <Route path="resale-plots" element={<ResalePlotsListPage />} />
-                <Route path="resale-plots/:plotId" element={<ResalePlotDetailPage />} />
-                <Route path="bookings" element={<BookingsListPage />} />
-                <Route path="payments" element={<PaymentsListPage />} />
-                <Route path="bank-accounts" element={<BankAccountsListPage />} />
-                <Route path="approvals" element={<ApprovalsListPage />} />
-                <Route path="documents" element={<DocumentsListPage />} />
-                <Route path="reports" element={<ReportsPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                {ADMIN_MODULE_ROUTES.map(({ path, title }) => (
-                  <Route key={path} path={path} element={<ComingSoonPage title={title} />} />
-                ))}
-              </Route>
+                <Route
+                  path="/"
+                  element={
+                    <RequireAuth roles={["Admin", "Employee"]}>
+                      <AdminLayout />
+                    </RequireAuth>
+                  }
+                >
+                  <Route index element={<DashboardPage />} />
+                  <Route path="employees" element={<EmployeesListPage />} />
+                  <Route path="designations" element={<DesignationsListPage />} />
+                  <Route path="societies" element={<SocietiesListPage />} />
+                  <Route path="blocks" element={<BlocksListPage />} />
+                  <Route path="agents" element={<AgentsListPage />} />
+                  <Route path="leads" element={<LeadsListPage />} />
+                  <Route path="clients" element={<ClientsListPage />} />
+                  <Route path="plots" element={<PlotsListPage />} />
+                  <Route path="resale-plots" element={<ResalePlotsListPage />} />
+                  <Route path="resale-plots/:plotId" element={<ResalePlotDetailPage />} />
+                  <Route path="bookings" element={<BookingsListPage />} />
+                  <Route path="payments" element={<PaymentsListPage />} />
+                  <Route path="bank-accounts" element={<BankAccountsListPage />} />
+                  <Route path="marketplace" element={<MarketplacePage />} />
+                  <Route path="approvals" element={<ApprovalsListPage />} />
+                  <Route path="documents" element={<DocumentsListPage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  {ADMIN_MODULE_ROUTES.map(({ path, title }) => (
+                    <Route key={path} path={path} element={<ComingSoonPage title={title} />} />
+                  ))}
+                </Route>
 
-              <Route
-                path="/client-portal"
-                element={
-                  <RequireAuth roles={["Client"]}>
-                    <ClientPortalLayout />
-                  </RequireAuth>
-                }
-              >
-                <Route index element={<MyPlotsPage />} />
-                <Route path="resale-purchases" element={<MyResalePurchasesPage />} />
-                <Route path="plots/:plotId" element={<PlotDetailPage />} />
-                <Route path="documents" element={<MyDocumentsPage />} />
-                <Route path="profile" element={<MyProfilePage />} />
-              </Route>
+                <Route
+                  path="/client-portal"
+                  element={
+                    <RequireAuth roles={["Client"]}>
+                      <ClientPortalLayout />
+                    </RequireAuth>
+                  }
+                >
+                  <Route index element={<MyPlotsPage />} />
+                  <Route path="resale-purchases" element={<MyResalePurchasesPage />} />
+                  <Route path="plots/:plotId" element={<PlotDetailPage />} />
+                  <Route path="documents" element={<MyDocumentsPage />} />
+                  <Route path="marketplace" element={<ClientMarketplacePage />} />
+                  <Route path="profile" element={<MyProfilePage />} />
+                </Route>
 
-              <Route
-                path="/agent-portal"
-                element={
-                  <RequireAuth roles={["Agent"]}>
-                    <AgentPortalLayout />
-                  </RequireAuth>
-                }
-              >
-                <Route index element={<AvailablePlotsPage />} />
-                <Route path="commissions" element={<MyCommissionsPage />} />
-                <Route path="profile" element={<AgentMyProfilePage />} />
-              </Route>
+                <Route
+                  path="/agent-portal"
+                  element={
+                    <RequireAuth roles={["Agent"]}>
+                      <AgentPortalLayout />
+                    </RequireAuth>
+                  }
+                >
+                  <Route index element={<AvailablePlotsPage />} />
+                  <Route path="commissions" element={<MyCommissionsPage />} />
+                  <Route path="marketplace" element={<AgentMarketplacePage />} />
+                  <Route path="profile" element={<AgentMyProfilePage />} />
+                </Route>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </MarketplaceChatProvider>
           </AuthProvider>
         </BrowserRouter>
       </ConfigProvider>

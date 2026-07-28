@@ -9,6 +9,13 @@ import type {
   ClientPortalProfile,
   UpdateClientPortalProfileRequest,
 } from "../types/clientPortal";
+import type {
+  MarketplaceConversationResponse,
+  MarketplaceListingResponse,
+  PublishListingRequest,
+  SendMarketplaceMessageRequest,
+  StartMarketplaceConversationRequest,
+} from "../types/marketplace";
 
 export async function getMyPlots(): Promise<PlotResponse[]> {
   const response = await axiosClient.get<ApiResponse<PlotResponse[]>>("/client-portal/plots");
@@ -78,5 +85,70 @@ export async function uploadMyPhoto(file: File): Promise<ClientPortalProfile> {
 
 export async function removeMyPhoto(): Promise<ClientPortalProfile> {
   const response = await axiosClient.delete<ApiResponse<ClientPortalProfile>>("/client-portal/profile/photo");
+  return response.data.data;
+}
+
+export async function getMarketplacePublishablePlots(): Promise<PlotResponse[]> {
+  const response = await axiosClient.get<ApiResponse<PlotResponse[]>>("/client-portal/marketplace/publishable-plots");
+  return response.data.data;
+}
+
+export async function getMarketplaceListings(): Promise<MarketplaceListingResponse[]> {
+  const response = await axiosClient.get<ApiResponse<MarketplaceListingResponse[]>>("/client-portal/marketplace/listings");
+  return response.data.data;
+}
+
+export async function publishToMarketplace(dto: PublishListingRequest): Promise<MarketplaceListingResponse> {
+  const response = await axiosClient.post<ApiResponse<MarketplaceListingResponse>>("/client-portal/marketplace/listings", dto);
+  return response.data.data;
+}
+
+export async function unpublishFromMarketplace(id: string): Promise<MarketplaceListingResponse> {
+  const response = await axiosClient.delete<ApiResponse<MarketplaceListingResponse>>(`/client-portal/marketplace/listings/${id}`);
+  return response.data.data;
+}
+
+export async function startMarketplaceConversation(
+  dto: StartMarketplaceConversationRequest,
+): Promise<MarketplaceConversationResponse> {
+  const response = await axiosClient.post<ApiResponse<MarketplaceConversationResponse>>(
+    "/client-portal/marketplace/conversations",
+    dto,
+  );
+  return response.data.data;
+}
+
+export async function sendMyMarketplaceMessage(
+  conversationId: string,
+  dto: SendMarketplaceMessageRequest,
+): Promise<MarketplaceConversationResponse> {
+  const response = await axiosClient.post<ApiResponse<MarketplaceConversationResponse>>(
+    `/client-portal/marketplace/conversations/${conversationId}/messages`,
+    dto,
+  );
+  return response.data.data;
+}
+
+export async function getMyMarketplaceConversations(): Promise<MarketplaceConversationResponse[]> {
+  const response = await axiosClient.get<ApiResponse<MarketplaceConversationResponse[]>>(
+    "/client-portal/marketplace/conversations",
+  );
+  return response.data.data;
+}
+
+export async function uploadMarketplaceListingPhoto(listingId: string, file: File): Promise<MarketplaceListingResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await axiosClient.post<ApiResponse<MarketplaceListingResponse>>(
+    `/client-portal/marketplace/listings/${listingId}/photos`,
+    formData,
+  );
+  return response.data.data;
+}
+
+export async function removeMarketplaceListingPhoto(listingId: string, photoId: string): Promise<MarketplaceListingResponse> {
+  const response = await axiosClient.delete<ApiResponse<MarketplaceListingResponse>>(
+    `/client-portal/marketplace/listings/${listingId}/photos/${photoId}`,
+  );
   return response.data.data;
 }

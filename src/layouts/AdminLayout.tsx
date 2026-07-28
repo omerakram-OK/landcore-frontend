@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Avatar, Dropdown, Layout, Menu, Space, Typography } from "antd";
+import { Avatar, Badge, Dropdown, Layout, Menu, Space, Typography } from "antd";
 import type { MenuProps } from "antd";
 import {
   ApartmentOutlined,
@@ -13,6 +13,7 @@ import {
   LogoutOutlined,
   ScheduleOutlined,
   SettingOutlined,
+  ShopOutlined,
   SolutionOutlined,
   TeamOutlined,
   UsergroupAddOutlined,
@@ -21,11 +22,12 @@ import {
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
+import { useMarketplaceChatHub } from "../hooks/useMarketplaceChatHub";
 import { getBranding } from "../api/branding";
 
 const { Header, Sider, Content } = Layout;
 
-function buildNavItems(isAdmin: boolean): MenuProps["items"] {
+function buildNavItems(isAdmin: boolean, marketplaceUnread: number): MenuProps["items"] {
   const items: MenuProps["items"] = [
     { key: "/", icon: <DashboardOutlined />, label: <Link to="/">Dashboard</Link> },
     { key: "/employees", icon: <TeamOutlined />, label: <Link to="/employees">Employees</Link> },
@@ -40,6 +42,16 @@ function buildNavItems(isAdmin: boolean): MenuProps["items"] {
     { key: "/bookings", icon: <ScheduleOutlined />, label: <Link to="/bookings">Bookings</Link> },
     { key: "/payments", icon: <DollarOutlined />, label: <Link to="/payments">Payments</Link> },
     { key: "/bank-accounts", icon: <BankOutlined />, label: <Link to="/bank-accounts">Bank Accounts</Link> },
+    {
+      key: "/marketplace",
+      icon: <ShopOutlined />,
+      label: (
+        <Link to="/marketplace" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+          <span>Marketplace</span>
+          {marketplaceUnread > 0 ? <Badge count={marketplaceUnread} size="small" /> : null}
+        </Link>
+      ),
+    },
     { key: "/approvals", icon: <FileDoneOutlined />, label: <Link to="/approvals">Approvals</Link> },
     { key: "/documents", icon: <ContainerOutlined />, label: <Link to="/documents">Documents</Link> },
     { key: "/reports", icon: <FileDoneOutlined />, label: <Link to="/reports">Reports</Link> },
@@ -57,9 +69,10 @@ export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { claims, logout } = useAuth();
+  const { unreadTotal } = useMarketplaceChatHub();
   const isAdmin = claims?.role === "Admin";
 
-  const navItems = useMemo(() => buildNavItems(isAdmin), [isAdmin]);
+  const navItems = useMemo(() => buildNavItems(isAdmin, unreadTotal), [isAdmin, unreadTotal]);
 
   const { data: branding } = useQuery({ queryKey: ["branding"], queryFn: getBranding });
 
